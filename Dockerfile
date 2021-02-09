@@ -1,19 +1,10 @@
-FROM debian:stable
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
+FROM alpine:latest
 
 WORKDIR /usr/src/app
 
-RUN apt update -qq
-RUN apt upgrade -qq
-RUN apt install --no-install-recommends -y \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg \
-    gnupg-agent \
-    software-properties-common
-RUN curl -fsSL https://get.docker.com -o get-docker.sh
+RUN apt update -qq && apt upgrade -qq
+
+RUN wget https://get.docker.com -O get-docker.sh
 RUN sh get-docker.sh
 RUN rm -rf /var/lib/apt/lists/*
 
