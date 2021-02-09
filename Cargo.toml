@@ -1,9 +1,8 @@
 [package]
-name = "docker2mqtt"
-version = "0.1.0"
 authors = ["Alexander Serowy <serowy@hotmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+name = "docker2mqtt"
+version = "0.0.1"
 
 [dependencies]
+rs-docker = "0.0.58"
