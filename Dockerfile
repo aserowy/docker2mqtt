@@ -16,14 +16,4 @@ RUN add-apt-repository \
    stable"
 
 RUN apt-get update
-RUN apt-get install -y \
-    docker-ce-cli \
-    python3-paho-mqtt
-
-RUN rm -rf /var/lib/apt/lists/*
-
-COPY docker2mqtt .
-
-RUN chmod +x /docker2mqtt
-
-ENTRYPOINT ["/docker2mqtt"]
+RUN apt-get install -y docker-ce-cli
