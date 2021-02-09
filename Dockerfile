@@ -8,12 +8,14 @@ RUN apt install -y \
     gnupg-agent \
     software-properties-common
 
+RUN curl --help
+
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
 RUN add-apt-repository \
    "deb [arch=armhf] https://download.docker.com/linux/debian \
    $(lsb_release -cs) \
    stable"
-   
+
 RUN apt update
 RUN apt install -y \
     docker-ce-cli \
