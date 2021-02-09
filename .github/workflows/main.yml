@@ -26,4 +26,4 @@ jobs:
         run: |
           docker buildx build --push \
             --tag serowy/docker2mqtt:latest \
-            --platform linux/arm/v7 .
+            --platform linux/arm/v6,linux/arm/v7 .
