@@ -22,8 +22,6 @@ RUN apt-get install -y \
 
 RUN rm -rf /var/lib/apt/lists/*
 
-WORKDIR /usr/src/app
-
 COPY docker2mqtt .
 
-ENTRYPOINT ["/usr/src/app/docker2mqtt"]
+ENTRYPOINT ["/docker2mqtt"]
