@@ -2,9 +2,9 @@ name: multi arc pipeline for docker hub
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -22,4 +22,4 @@ jobs:
         run: |
           docker buildx build --push \
             --tag serowy/docker2mqtt:latest \
-            --platform linux/amd64,linux/arm/v7,linux/arm64 .
+            --platform linux/arm64/v8,linux/arm/v6,linux/arm/v7 .
