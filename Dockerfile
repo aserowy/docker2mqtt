@@ -24,4 +24,6 @@ RUN rm -rf /var/lib/apt/lists/*
 
 COPY docker2mqtt .
 
+RUN chmod +x /docker2mqtt
+
 ENTRYPOINT ["/docker2mqtt"]
