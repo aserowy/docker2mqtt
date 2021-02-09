@@ -1,4 +1,4 @@
-FROM debian:stable
+FROM debian:buster-slim
 
 RUN apt update
 RUN apt install -y \
@@ -15,8 +15,8 @@ RUN add-apt-repository \
    $(lsb_release -cs) \
    stable"
 
-RUN apt update
-RUN apt install -y \
+RUN apt-get update
+RUN apt-get install -y \
     docker-ce-cli \
     python3-paho-mqtt
 
