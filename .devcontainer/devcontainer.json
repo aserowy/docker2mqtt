@@ -5,13 +5,22 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
+	"extensions": [
+		"vadimcn.vscode-lldb",
+		"mutantdino.resourcemonitor",
+		"matklad.rust-analyzer",
+		"be5invis.toml"
+	],
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
+	],
+	"overrideCommand": false,
+	"remoteUser": "vscode",
 	"runArgs": [
+		"--init",
 		"--cap-add=SYS_PTRACE",
 		"--security-opt",
 		"seccomp=unconfined"
-	],
-	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
 	],
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
@@ -19,12 +28,5 @@
 		"files.watcherExclude": {
 			"**/target/**": true
 		}
-	},
-	"extensions": [
-		"bungcip.better-toml",
-		"vadimcn.vscode-lldb",
-		"mutantdino.resourcemonitor",
-		"matklad.rust-analyzer"
-	],
-	"remoteUser": "vscode"
+	}
 }

@@ -16,4 +16,6 @@ fn main() {
             panic!("{}", e);
         }
     };
+
+    println!("{:?}", containers);
 }
