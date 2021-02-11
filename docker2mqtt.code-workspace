@@ -6,6 +6,6 @@
   ],
   "settings": {
     "rust-analyzer.debug.engine": "vadimcn.vscode-lldb",
-    "rust-analyzer.updates.askBeforeDownload": false
+    "rust-analyzer.updates.askBeforeDownload": false,
   }
 }

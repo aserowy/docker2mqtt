@@ -9,7 +9,7 @@
 		"vadimcn.vscode-lldb",
 		"mutantdino.resourcemonitor",
 		"matklad.rust-analyzer",
-		"be5invis.toml"
+		"be5invis.toml",
 	],
 	"mounts": [
 		"source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
