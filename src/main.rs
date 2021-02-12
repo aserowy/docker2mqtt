@@ -21,12 +21,12 @@ fn main() {
         }
     };
 
-    let sensors: Vec<discovery::Sensor> = containers
+    let sensors: Vec<String> = containers
         .iter()
-        .map(|container| discovery::map_container_to_sensor_discovery(host, "image", container))
+        .map(|container| discovery::get_discovery_payload(host, container, "image"))
         .collect();
 
     for sensor in sensors {
-        println!("{:?}", sensor.to_json());
+        println!("{:?}", sensor);
     }
 }

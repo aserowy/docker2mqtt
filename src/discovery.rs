@@ -16,12 +16,6 @@ pub struct Sensor {
     pub unique_id: String,
 }
 
-impl Sensor {
-    pub fn to_json(&self) -> String {
-        serde_json::to_string(&self).unwrap()
-    }
-}
-
 #[derive(Serialize)]
 pub struct Device {
     pub identifiers: Vec<String>,
@@ -30,22 +24,17 @@ pub struct Device {
     pub name: String,
 }
 
-pub fn map_container_to_sensor_discovery(
-    host: &str,
-    sensor: &str,
-    container: &Container,
-) -> Sensor {
+pub fn get_discovery_payload(host: &str, container: &Container, sensor: &str) -> String {
     let device_name = &format!("docker_{}", host);
 
     let mut identifiers = Vec::new();
     identifiers.push(device_name.to_string());
 
-    let container_name = topic::resolve_container_name(container);
+    let container_name = topic::get_container_name(container);
     let unique_id = format!("{}_{}_{}", device_name, container_name, sensor);
-    let topic_base = topic::resolve_base_topic(host, container);
 
-    Sensor {
-        availability_topic: format!("{}/availability", &topic_base),
+    let sensor = Sensor {
+        availability_topic: topic::get_availability_topic(host, container),
         device: Device {
             identifiers,
             manufacturer: "docker2mqtt".to_string(),
@@ -57,7 +46,9 @@ pub fn map_container_to_sensor_discovery(
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
         platform: "mqtt".to_string(),
-        state_topic: format!("{}/{}/state", &topic_base, sensor),
+        state_topic: topic::get_state_topic(host, container, sensor),
         unique_id,
-    }
+    };
+
+    serde_json::to_string(&sensor).unwrap()
 }
