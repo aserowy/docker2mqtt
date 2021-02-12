@@ -1,11 +1,21 @@
 use rs_docker::container::Container;
 
-pub fn get_state_topic(host: &str, container: &Container, sensor: &str) -> String {
-    format!("{}/{}/state", get_base_topic(host, container), sensor)
-}
+use crate::sensor::Sensor;
 
 pub fn get_availability_topic(host: &str, container: &Container) -> String {
     format!("{}/availability", get_base_topic(host, container))
+}
+
+pub fn get_discovery_topic(host: &str, container: &Container, sensor: &Sensor) -> String {
+    format!(
+        "homeassistant/sensor/{}/{}/config",
+        get_base_topic(host, container),
+        sensor
+    )
+}
+
+pub fn get_state_topic(host: &str, container: &Container, sensor: &Sensor) -> String {
+    format!("{}/{}/state", get_base_topic(host, container), sensor)
 }
 
 pub fn get_container_name(container: &Container) -> &str {

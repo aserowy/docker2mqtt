@@ -5,6 +5,7 @@ name = "docker2mqtt"
 version = "0.0.1"
 
 [dependencies]
+enum-iterator = "0.6"
 mqtt-async-client = {version = "0.1", default-features = false}
 rs-docker = "0.0.58"
 serde = {version = "1.0", features = ["derive"]}

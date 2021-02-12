@@ -1,9 +1,9 @@
 use rs_docker::container::Container;
 
-pub fn get_lwt_payload(container: &Container) -> &str {
+pub fn get_lwt_payload(container: &Container) -> String {
     if container.Status.starts_with("Up") {
-        "online"
+        "online".to_string()
     } else {
-        "offline"
+        "offline".to_string()
     }
 }

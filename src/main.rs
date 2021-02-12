@@ -2,6 +2,9 @@ use rs_docker::Docker;
 
 mod discovery;
 mod lwt;
+mod mqtt;
+mod sensor;
+mod state;
 mod topic;
 
 fn main() {
@@ -21,12 +24,12 @@ fn main() {
         }
     };
 
-    let sensors: Vec<String> = containers
+    let messages: Vec<(String, String)> = containers
         .iter()
-        .map(|container| discovery::get_discovery_payload(host, container, "image"))
+        .flat_map(|container| mqtt::get_messages(host, &docker, container))
         .collect();
 
-    for sensor in sensors {
-        println!("{:?}", sensor);
+    for message in messages {
+        println!("{:?}", message);
     }
 }

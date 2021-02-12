@@ -1,30 +1,10 @@
+use crate::sensor;
 use crate::topic;
 
 use rs_docker::container::Container;
 use serde::Serialize;
 
-#[derive(Serialize)]
-pub struct Sensor {
-    pub availability_topic: String,
-    pub device: Device,
-    pub icon: String,
-    pub name: String,
-    pub payload_available: String,
-    pub payload_not_available: String,
-    pub platform: String,
-    pub state_topic: String,
-    pub unique_id: String,
-}
-
-#[derive(Serialize)]
-pub struct Device {
-    pub identifiers: Vec<String>,
-    pub manufacturer: String,
-    pub model: String,
-    pub name: String,
-}
-
-pub fn get_discovery_payload(host: &str, container: &Container, sensor: &str) -> String {
+pub fn get_discovery_payload(host: &str, container: &Container, sensor: &sensor::Sensor) -> String {
     let device_name = &format!("docker_{}", host);
 
     let mut identifiers = Vec::new();
@@ -51,4 +31,25 @@ pub fn get_discovery_payload(host: &str, container: &Container, sensor: &str) ->
     };
 
     serde_json::to_string(&sensor).unwrap()
+}
+
+#[derive(Serialize)]
+struct Sensor {
+    pub availability_topic: String,
+    pub device: Device,
+    pub icon: String,
+    pub name: String,
+    pub payload_available: String,
+    pub payload_not_available: String,
+    pub platform: String,
+    pub state_topic: String,
+    pub unique_id: String,
+}
+
+#[derive(Serialize)]
+struct Device {
+    pub identifiers: Vec<String>,
+    pub manufacturer: String,
+    pub model: String,
+    pub name: String,
 }
