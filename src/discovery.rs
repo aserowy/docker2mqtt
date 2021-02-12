@@ -1,20 +1,25 @@
-use crate::sensor;
-use crate::topic;
-
 use rs_docker::container::Container;
 use serde::Serialize;
 
+use crate::{container, lwt, sensor, state};
+
+pub fn get_discovery_topic(host: &str, container: &Container, sensor: &sensor::Sensor) -> String {
+    format!(
+        "homeassistant/sensor/docker2mqtt/{}/config",
+        get_unique_id(host, container, sensor)
+    )
+}
+
 pub fn get_discovery_payload(host: &str, container: &Container, sensor: &sensor::Sensor) -> String {
-    let device_name = &format!("docker_{}", host);
+    let device_name = &get_device_name(host);
 
     let mut identifiers = Vec::new();
     identifiers.push(device_name.to_string());
 
-    let container_name = topic::get_container_name(container);
-    let unique_id = format!("{}_{}_{}", device_name, container_name, sensor);
+    let unique_id = get_unique_id(host, container, sensor);
 
     let sensor = Sensor {
-        availability_topic: topic::get_availability_topic(host, container),
+        availability_topic: lwt::get_availability_topic(host, container),
         device: Device {
             identifiers,
             manufacturer: "docker2mqtt".to_string(),
@@ -26,11 +31,24 @@ pub fn get_discovery_payload(host: &str, container: &Container, sensor: &sensor:
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
         platform: "mqtt".to_string(),
-        state_topic: topic::get_state_topic(host, container, sensor),
+        state_topic: state::get_state_topic(host, container, sensor),
         unique_id,
     };
 
     serde_json::to_string(&sensor).unwrap()
+}
+
+fn get_unique_id(host: &str, container: &Container, sensor: &sensor::Sensor) -> String {
+    format!(
+        "{}_{}_{}",
+        get_device_name(host),
+        container::get_container_name(container),
+        sensor
+    )
+}
+
+fn get_device_name(host: &str) -> String {
+    format!("docker_{}", host)
 }
 
 #[derive(Serialize)]

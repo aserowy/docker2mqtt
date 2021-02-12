@@ -1,6 +1,14 @@
-use crate::sensor::Sensor;
+use crate::{sensor::Sensor, topic};
 
 use rs_docker::{container::Container, Docker};
+
+pub fn get_state_topic(host: &str, container: &Container, sensor: &Sensor) -> String {
+    format!(
+        "{}/{}/state",
+        topic::get_base_topic(host, container),
+        sensor
+    )
+}
 
 pub fn get_state_payload(docker: &Docker, container: &Container, sensor: &Sensor) -> String {
     match sensor {

@@ -1,5 +1,6 @@
 use rs_docker::Docker;
 
+mod container;
 mod discovery;
 mod lwt;
 mod mqtt;
