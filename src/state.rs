@@ -10,7 +10,7 @@ pub fn get_state_topic(host: &str, container: &Container, sensor: &Sensor) -> St
     )
 }
 
-pub fn get_state_payload(docker: &Docker, container: &Container, sensor: &Sensor) -> String {
+pub fn get_state_payload(_docker: &Docker, container: &Container, sensor: &Sensor) -> String {
     match sensor {
         Sensor::Image => container.Image.to_string(),
         Sensor::Status => get_container_status(container),

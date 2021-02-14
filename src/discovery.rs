@@ -32,7 +32,6 @@ pub fn get_discovery_payload(host: &str, container: &Container, sensor: &sensor:
             model: "docker".to_string(),
             name: device_name.to_string(),
         },
-        icon: "".to_string(),
         name: unique_id.to_string(),
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
@@ -61,7 +60,6 @@ fn get_device_name(host: &str) -> String {
 struct Sensor {
     pub availability_topic: String,
     pub device: Device,
-    pub icon: String,
     pub name: String,
     pub payload_available: String,
     pub payload_not_available: String,
