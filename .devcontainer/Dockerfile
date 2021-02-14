@@ -1,5 +1,7 @@
 FROM mcr.microsoft.com/vscode/devcontainers/rust:0-1
 
+RUN apt-get install -y cmake g++ make
+
 # Install Docker CE CLI
 RUN apt-get update \
     && apt-get install -y apt-transport-https ca-certificates curl gnupg2 lsb-release \

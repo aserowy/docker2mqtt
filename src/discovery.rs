@@ -3,9 +3,15 @@ use serde::Serialize;
 
 use crate::{container, lwt, sensor, state};
 
-pub fn get_discovery_topic(host: &str, container: &Container, sensor: &sensor::Sensor) -> String {
+pub fn get_discovery_topic(
+    hass_discovery_prefix: &str,
+    host: &str,
+    container: &Container,
+    sensor: &sensor::Sensor,
+) -> String {
     format!(
-        "homeassistant/sensor/docker2mqtt/{}/config",
+        "{}/sensor/docker2mqtt/{}/config",
+        hass_discovery_prefix,
         get_unique_id(host, container, sensor)
     )
 }

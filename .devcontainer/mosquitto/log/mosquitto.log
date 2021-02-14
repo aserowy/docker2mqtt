@@ -1,0 +1,16 @@
+1613196957: mosquitto version 2.0.7 starting
+1613196957: Config loaded from /mosquitto/config/mosquitto.conf.
+1613196957: Opening ipv4 listen socket on port 1883.
+1613196957: Opening ipv6 listen socket on port 1883.
+1613196957: mosquitto version 2.0.7 running
+1613197436: mosquitto version 2.0.7 terminating
+1613197447: mosquitto version 2.0.7 starting
+1613197447: Config loaded from /mosquitto/config/mosquitto.conf.
+1613197447: Opening ipv4 listen socket on port 1883.
+1613197447: Opening ipv6 listen socket on port 1883.
+1613197447: mosquitto version 2.0.7 running
+1613197547: New connection from 172.18.0.3:59903 on port 1883.
+1613197547: New client connected from 172.18.0.3:59903 as 4rYeHWP5oxhUSGQS0GvWTQ (p1, c1, k60).
+1613197547: Client 4rYeHWP5oxhUSGQS0GvWTQ disconnected.
+1613197547: New connection from 172.18.0.3:58823 on port 1883.
+1613197547: New client connected from 172.18.0.3:58823 as 4AGV6ntyjl1Bop8LR0RQQl (p2, c1, k60).
