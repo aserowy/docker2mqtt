@@ -1,10 +1,9 @@
-FROM mcr.microsoft.com/vscode/devcontainers/rust:0-1
+FROM mcr.microsoft.com/vscode/devcontainers/rust:1
 
-RUN apt-get install -y cmake g++ make
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive
 
 # Install Docker CE CLI
-RUN apt-get update \
-    && apt-get install -y apt-transport-https ca-certificates curl gnupg2 lsb-release \
+RUN apt-get install -y apt-transport-https ca-certificates curl gnupg2 lsb-release \
     && curl -fsSL https://download.docker.com/linux/$(lsb_release -is | tr '[:upper:]' '[:lower:]')/gpg | apt-key add - 2>/dev/null \
     && echo "deb [arch=amd64] https://download.docker.com/linux/$(lsb_release -is | tr '[:upper:]' '[:lower:]') $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list \
     && apt-get update \

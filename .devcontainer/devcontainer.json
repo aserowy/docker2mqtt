@@ -2,26 +2,19 @@
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.155.1/containers/rust
 {
 	"name": "Rust",
-	"build": {
-		"dockerfile": "Dockerfile"
-	},
+	"dockerComposeFile": [
+		"../docker-compose.yaml"
+	],
+	"service": "docker2mqtt",
+	"workspaceFolder": "/workspace",
+	"shutdownAction": "stopCompose",
 	"extensions": [
 		"vadimcn.vscode-lldb",
 		"mutantdino.resourcemonitor",
 		"matklad.rust-analyzer",
 		"be5invis.toml",
 	],
-	"mounts": [
-		"source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
-	],
-	"overrideCommand": false,
 	"remoteUser": "vscode",
-	"runArgs": [
-		"--init",
-		"--cap-add=SYS_PTRACE",
-		"--security-opt",
-		"seccomp=unconfined"
-	],
 	"settings": {
 		"terminal.integrated.shell.linux": "/bin/bash",
 		"lldb.executable": "/usr/bin/lldb",
