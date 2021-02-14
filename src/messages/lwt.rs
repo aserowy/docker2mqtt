@@ -1,6 +1,6 @@
 use rs_docker::container::Container;
 
-use crate::topic;
+use super::topic;
 
 pub fn get_availability_topic(host: &str, container: &Container) -> String {
     format!("{}/availability", topic::get_base_topic(host, container))

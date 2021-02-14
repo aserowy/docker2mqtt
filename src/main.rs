@@ -2,12 +2,9 @@ use rs_docker::Docker;
 use rumqttc::{Event, Incoming};
 
 mod container;
-mod discovery;
-mod lwt;
+mod messages;
 mod mqtt;
 mod sensor;
-mod state;
-mod topic;
 
 pub struct Args {
     client_id: String,
@@ -41,14 +38,25 @@ async fn main() {
 
     let (client, mut eventloop) = mqtt::create_client(&args).await;
 
-    let docker = match Docker::connect("unix:///var/run/docker.sock") {
+    let mut docker = match Docker::connect("unix:///var/run/docker.sock") {
         Ok(docker) => docker,
         Err(e) => {
             panic!("{}", e);
         }
     };
 
-    let messages = get_messages(docker, &args);
+    let containers = match docker.get_containers(false) {
+        Ok(containers) => containers,
+        Err(e) => {
+            panic!("{}", e);
+        }
+    };
+
+    let messages: Vec<(String, String)> = containers
+        .iter()
+        .flat_map(|container| messages::get_messages(&docker, container, &args))
+        .collect();
+
     for (topic, payload) in messages {
         println!("Topic: {}, Payload: {:?}", topic, payload);
         mqtt::send_message(&client, topic, payload, &args).await;
@@ -69,20 +77,4 @@ async fn main() {
             }
         }
     }
-}
-
-fn get_messages(mut docker: Docker, args: &Args) -> Vec<(String, String)> {
-    let containers = match docker.get_containers(false) {
-        Ok(containers) => containers,
-        Err(e) => {
-            panic!("{}", e);
-        }
-    };
-
-    let messages: Vec<(String, String)> = containers
-        .iter()
-        .flat_map(|container| sensor::get_messages(&docker, container, args))
-        .collect();
-
-    messages
 }

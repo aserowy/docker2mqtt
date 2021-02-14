@@ -1,6 +1,8 @@
-use crate::{sensor::Sensor, topic};
-
 use rs_docker::{container::Container, Docker};
+
+use crate::sensor::Sensor;
+
+use super::topic;
 
 pub fn get_state_topic(host: &str, container: &Container, sensor: &Sensor) -> String {
     format!(
