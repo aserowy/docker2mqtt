@@ -4,10 +4,10 @@ use crate::sensor::Sensor;
 
 use super::topic;
 
-pub fn get_state_topic(host: &str, container: &Container, sensor: &Sensor) -> String {
+pub fn get_state_topic(client_id: &str, container: &Container, sensor: &Sensor) -> String {
     format!(
         "{}/{}/state",
-        topic::get_base_topic(host, container),
+        topic::get_base_topic(client_id, container),
         sensor
     )
 }

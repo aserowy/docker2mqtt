@@ -4,7 +4,7 @@ use rumqttc::{AsyncClient, MqttOptions, QoS};
 
 use crate::Args;
 
-pub(crate) async fn create_client(args: &Args) -> (rumqttc::AsyncClient, rumqttc::EventLoop) {
+pub async fn create_client(args: &Args) -> (rumqttc::AsyncClient, rumqttc::EventLoop) {
     let mut options = MqttOptions::new(
         args.client_id.to_owned(),
         args.mqtt_host.to_owned(),
@@ -18,7 +18,7 @@ pub(crate) async fn create_client(args: &Args) -> (rumqttc::AsyncClient, rumqttc
     AsyncClient::new(options, 100)
 }
 
-pub(crate) async fn send_message(
+pub async fn send_message(
     client: &rumqttc::AsyncClient,
     topic: String,
     payload: String,

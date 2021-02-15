@@ -7,11 +7,11 @@ use super::{lwt, state};
 
 pub fn get_discovery_topic(
     hass_discovery_prefix: &str,
-    host: &str,
+    client_id: &str,
     container: &Container,
     sensor: &sensor::Sensor,
 ) -> String {
-    let (_, unique_id) = get_ids(host, container, sensor);
+    let (_, unique_id) = get_ids(client_id, container, sensor);
 
     format!(
         "{}/sensor/docker2mqtt/{}/config",
@@ -19,14 +19,18 @@ pub fn get_discovery_topic(
     )
 }
 
-pub fn get_discovery_payload(host: &str, container: &Container, sensor: &sensor::Sensor) -> String {
-    let (device_name, unique_id) = get_ids(host, container, sensor);
+pub fn get_discovery_payload(
+    client_id: &str,
+    container: &Container,
+    sensor: &sensor::Sensor,
+) -> String {
+    let (device_name, unique_id) = get_ids(client_id, container, sensor);
 
     let mut identifiers = Vec::new();
     identifiers.push(device_name.to_string());
 
     let sensor = Sensor {
-        availability_topic: lwt::get_availability_topic(host, container),
+        availability_topic: lwt::get_availability_topic(client_id, container),
         device: Device {
             identifiers,
             manufacturer: "docker2mqtt".to_string(),
@@ -37,17 +41,17 @@ pub fn get_discovery_payload(host: &str, container: &Container, sensor: &sensor:
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
         platform: "mqtt".to_string(),
-        state_topic: state::get_state_topic(host, container, sensor),
+        state_topic: state::get_state_topic(client_id, container, sensor),
         unique_id,
     };
 
     serde_json::to_string(&sensor).unwrap()
 }
 
-fn get_ids(host: &str, container: &Container, sensor: &sensor::Sensor) -> (String, String) {
+fn get_ids(client_id: &str, container: &Container, sensor: &sensor::Sensor) -> (String, String) {
     let device_name = format!(
         "docker_{}_{}",
-        host,
+        client_id,
         container::get_container_name(container)
     );
 

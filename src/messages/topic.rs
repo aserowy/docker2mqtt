@@ -2,10 +2,10 @@ use rs_docker::container::Container;
 
 use crate::container;
 
-pub fn get_base_topic(host: &str, container: &Container) -> String {
+pub fn get_base_topic(client_id: &str, container: &Container) -> String {
     format!(
         "docker2mqtt/{}/{}",
-        host,
+        client_id,
         container::get_container_name(container)
     )
 }
