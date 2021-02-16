@@ -1,4 +1,4 @@
-use rs_docker::container::Container;
+use crate::docker::Container;
 
 use super::topic;
 
@@ -10,7 +10,7 @@ pub fn get_availability_topic(client_id: &str, container: &Container) -> String 
 }
 
 pub fn get_lwt_payload(container: &Container) -> String {
-    if container.Status.starts_with("Up") {
+    if container.status.starts_with("Up") {
         "online".to_string()
     } else {
         "offline".to_string()

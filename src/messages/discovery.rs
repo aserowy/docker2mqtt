@@ -1,7 +1,6 @@
-use rs_docker::container::Container;
 use serde::Serialize;
 
-use crate::{container, sensor};
+use crate::{docker::Container, sensor};
 
 use super::{lwt, state};
 
@@ -37,7 +36,7 @@ pub fn get_discovery_payload(
             model: "docker".to_string(),
             name: device_name.to_string(),
         },
-        name: unique_id.to_string(),
+        name: sensor.to_string(),
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
         platform: "mqtt".to_string(),
@@ -46,18 +45,6 @@ pub fn get_discovery_payload(
     };
 
     serde_json::to_string(&sensor).unwrap()
-}
-
-fn get_ids(client_id: &str, container: &Container, sensor: &sensor::Sensor) -> (String, String) {
-    let device_name = format!(
-        "docker_{}_{}",
-        client_id,
-        container::get_container_name(container)
-    );
-
-    let unique_id = format!("{}_{}", device_name, sensor);
-
-    (device_name, unique_id)
 }
 
 #[derive(Serialize)]
@@ -78,4 +65,12 @@ struct Device {
     pub manufacturer: String,
     pub model: String,
     pub name: String,
+}
+
+fn get_ids(client_id: &str, container: &Container, sensor: &sensor::Sensor) -> (String, String) {
+    let device_name = format!("docker_{}_{}", client_id, container.name);
+
+    let unique_id = format!("{}_{}", device_name, sensor);
+
+    (device_name, unique_id)
 }

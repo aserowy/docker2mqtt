@@ -1,8 +1,8 @@
-use rs_docker::Docker;
+use docker::DockerClient;
 
 use crate::mqtt::MqttClient;
 
-mod container;
+mod docker;
 mod messages;
 mod mqtt;
 mod sensor;
@@ -37,31 +37,17 @@ async fn main() {
         mqtt_qos: 1,
     };
 
-    let client = MqttClient::new(&args).await;
+    let mqtt_client = MqttClient::new(&args).await;
+    let mut docker_client = DockerClient::new();
 
-    let mut docker = match Docker::connect("unix:///var/run/docker.sock") {
-        Ok(docker) => docker,
-        Err(e) => {
-            panic!("{}", e);
-        }
-    };
-
-    let containers = match docker.get_containers(false) {
-        Ok(containers) => containers,
-        Err(e) => {
-            panic!("{}", e);
-        }
-    };
-
-    let messages: Vec<(String, String)> = containers
-        .iter()
-        .flat_map(|container| messages::get_messages(&docker, container, &args))
-        .collect();
-
-    for (topic, payload) in messages {
-        println!("Topic: {}, Payload: {:?}", topic, payload);
-        client.send_message(topic, payload, &args).await;
+    let containers = docker_client.get_containers();
+    let messages = messages::get_messages(&docker_client, containers, &args);
+    for message in messages {
+        println!("Topic: {}, Payload: {:?}", message.topic, message.payload);
+        mqtt_client
+            .send_message(message.topic, message.payload, &args)
+            .await;
     }
 
-    client.start_loop().await;
+    mqtt_client.start_loop().await;
 }
