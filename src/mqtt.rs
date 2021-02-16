@@ -1,34 +1,61 @@
 use std::time::Duration;
 
-use rumqttc::{AsyncClient, MqttOptions, QoS};
+use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
 
 use crate::Args;
 
-pub async fn create_client(args: &Args) -> (rumqttc::AsyncClient, rumqttc::EventLoop) {
-    let mut options = MqttOptions::new(
-        args.client_id.to_owned(),
-        args.mqtt_host.to_owned(),
-        args.mqtt_port,
-    );
-    options.set_clean_session(true);
-    options.set_connection_timeout(args.mqtt_op_timeout);
-    options.set_keep_alive(args.mqtt_keep_alive);
-    options.set_pending_throttle(Duration::from_secs(1));
-
-    AsyncClient::new(options, 100)
+pub struct MqttClient {
+    client: rumqttc::AsyncClient,
+    eventloop: rumqttc::EventLoop,
 }
 
-pub async fn send_message(
-    client: &rumqttc::AsyncClient,
-    topic: String,
-    payload: String,
-    args: &Args,
-) -> () {
-    match client.publish(topic, get_qos(args), true, payload).await {
-        Err(e) => {
-            panic!("{}", e);
+impl MqttClient {
+    pub async fn new(args: &Args) -> MqttClient {
+        let mut options = MqttOptions::new(
+            args.client_id.to_owned(),
+            args.mqtt_host.to_owned(),
+            args.mqtt_port,
+        );
+        options.set_clean_session(true);
+        options.set_connection_timeout(args.mqtt_op_timeout);
+        options.set_keep_alive(args.mqtt_keep_alive);
+        options.set_pending_throttle(Duration::from_secs(1));
+
+        let (client, eventloop) = AsyncClient::new(options, 100);
+
+        MqttClient { client, eventloop }
+    }
+
+    pub async fn send_message(&self, topic: String, payload: String, args: &Args) -> () {
+        let tkn = &self
+            .client
+            .publish(topic, get_qos(args), true, payload)
+            .await;
+
+        match tkn {
+            Err(e) => {
+                panic!("{}", e);
+            }
+            _ => (),
         }
-        _ => (),
+    }
+
+    pub async fn start_loop(mut self) -> () {
+        loop {
+            match self.eventloop.poll().await {
+                Ok(Event::Incoming(Incoming::Publish(p))) => {
+                    println!("Topic: {}, Payload: {:?}", p.topic, p.payload)
+                }
+                Ok(Event::Incoming(i)) => {
+                    println!("Incoming = {:?}", i);
+                }
+                Ok(Event::Outgoing(o)) => println!("Outgoing = {:?}", o),
+                Err(e) => {
+                    println!("Error = {:?}", e);
+                    continue;
+                }
+            }
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 use rs_docker::Docker;
-use rumqttc::{Event, Incoming};
+
+use crate::mqtt::MqttClient;
 
 mod container;
 mod messages;
@@ -36,7 +37,7 @@ async fn main() {
         mqtt_qos: 1,
     };
 
-    let (client, mut eventloop) = mqtt::create_client(&args).await;
+    let client = MqttClient::new(&args).await;
 
     let mut docker = match Docker::connect("unix:///var/run/docker.sock") {
         Ok(docker) => docker,
@@ -59,22 +60,8 @@ async fn main() {
 
     for (topic, payload) in messages {
         println!("Topic: {}, Payload: {:?}", topic, payload);
-        mqtt::send_message(&client, topic, payload, &args).await;
+        client.send_message(topic, payload, &args).await;
     }
 
-    loop {
-        match eventloop.poll().await {
-            Ok(Event::Incoming(Incoming::Publish(p))) => {
-                println!("Topic: {}, Payload: {:?}", p.topic, p.payload)
-            }
-            Ok(Event::Incoming(i)) => {
-                println!("Incoming = {:?}", i);
-            }
-            Ok(Event::Outgoing(o)) => println!("Outgoing = {:?}", o),
-            Err(e) => {
-                println!("Error = {:?}", e);
-                continue;
-            }
-        }
-    }
+    client.start_loop().await;
 }
