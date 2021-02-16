@@ -21,10 +21,22 @@ pub fn get_state_payload(_client: &DockerClient, container: &Container, sensor: 
 }
 
 fn get_container_status(container: &Container) -> String {
-    match container.status.chars().next() {
-        Some('U') => "running".to_string(),
-        Some('P') => "paused".to_string(),
-        Some(_) => "unknown".to_string(),
-        None => "stopped".to_string(),
+    let mut result = "unknown".to_string();
+    if container.status.contains("Paused") {
+        result = "paused".to_string();
     }
+
+    if container.status.contains("Up") {
+        result = "running".to_string();
+    }
+
+    if container.status.contains("Restarting") {
+        result = "restarting".to_string();
+    }
+
+    if container.status.contains("Exited") {
+        result = "stopped".to_string();
+    }
+
+    result
 }
