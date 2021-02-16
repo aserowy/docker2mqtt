@@ -1,5 +1,6 @@
-use docker::DockerClient;
+use tokio::{task, time};
 
+use crate::docker::DockerClient;
 use crate::mqtt::MqttClient;
 
 mod docker;
@@ -37,17 +38,28 @@ async fn main() {
         mqtt_qos: 1,
     };
 
-    let mqtt_client = MqttClient::new(&args).await;
-    let mut docker_client = DockerClient::new();
+    let (mqtt_client, mqtt_loop) = MqttClient::new(&args).await;
 
-    let containers = docker_client.get_containers();
-    let messages = messages::get_messages(&docker_client, containers, &args);
-    for message in messages {
-        println!("Topic: {}, Payload: {:?}", message.topic, message.payload);
-        mqtt_client
-            .send_message(message.topic, message.payload, &args)
-            .await;
-    }
+    task::spawn(async move {
+        let mut interval = time::interval(time::Duration::from_secs(15));
 
-    mqtt_client.start_loop().await;
+        loop {
+            let mut docker_client = DockerClient::new();
+
+            let containers = docker_client.get_containers();
+            let messages = messages::get_messages(&docker_client, containers, &args);
+
+            for message in messages {
+                println!("topic: {}, payload: {}", message.topic, message.payload);
+
+                mqtt_client
+                    .send_message(message.topic, message.payload, &args)
+                    .await;
+            }
+
+            interval.tick().await;
+        }
+    });
+
+    mqtt_loop.start_loop().await;
 }

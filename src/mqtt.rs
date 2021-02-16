@@ -1,16 +1,15 @@
 use std::time::Duration;
 
-use rumqttc::{AsyncClient, Event, Incoming, MqttOptions, QoS};
+use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
 
 use crate::Args;
 
 pub struct MqttClient {
     client: rumqttc::AsyncClient,
-    eventloop: rumqttc::EventLoop,
 }
 
 impl MqttClient {
-    pub async fn new(args: &Args) -> MqttClient {
+    pub async fn new(args: &Args) -> (MqttClient, MqttLoop) {
         let mut options = MqttOptions::new(
             args.client_id.to_owned(),
             args.mqtt_host.to_owned(),
@@ -23,10 +22,10 @@ impl MqttClient {
 
         let (client, eventloop) = AsyncClient::new(options, 100);
 
-        MqttClient { client, eventloop }
+        (MqttClient { client }, MqttLoop { eventloop })
     }
 
-    pub async fn send_message(&self, topic: String, payload: String, args: &Args) -> () {
+    pub async fn send_message(&self, topic: String, payload: String, args: &Args) {
         let tkn = &self
             .client
             .publish(topic, get_qos(args), true, payload)
@@ -39,8 +38,14 @@ impl MqttClient {
             _ => (),
         }
     }
+}
 
-    pub async fn start_loop(mut self) -> () {
+pub struct MqttLoop {
+    eventloop: EventLoop,
+}
+
+impl MqttLoop {
+    pub async fn start_loop(mut self) {
         loop {
             match self.eventloop.poll().await {
                 Ok(Event::Incoming(Incoming::Publish(p))) => {
