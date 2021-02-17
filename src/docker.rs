@@ -1,13 +1,18 @@
-use rs_docker::Docker;
+use rs_docker::{container::HostConfig, Docker};
 
 pub struct DockerClient {
     client: Docker,
 }
 
 pub struct Container {
+    pub id: String,
     pub name: String,
     pub image: String,
     pub status: String,
+}
+
+pub struct Stats {
+    pub cpu_usage: u64,
 }
 
 impl DockerClient {
@@ -31,6 +36,7 @@ impl DockerClient {
         let mut result = Vec::new();
         for container in containers {
             result.push(Container {
+                id: container.Id.to_owned(),
                 name: get_container_name(&container).to_owned(),
                 image: container.Image.to_owned(),
                 status: container.Status.to_owned(),
@@ -38,6 +44,32 @@ impl DockerClient {
         }
 
         result
+    }
+
+    pub fn get_stats(&mut self, container: &Container) -> Stats {
+        let wrapper = rs_docker::container::Container {
+            Id: container.id.to_owned(),
+            Status: container.status.to_owned(),
+
+            Image: "".to_owned(),
+            Command: "".to_owned(),
+            Created: 0,
+            Names: vec![],
+            Ports: vec![],
+            SizeRw: None,
+            SizeRootFs: 0,
+            Labels: None,
+            HostConfig: HostConfig {
+                NetworkMode: "".to_owned(),
+            },
+        };
+
+        match self.client.get_stats(&wrapper) {
+            Ok(stats) => Stats {
+                cpu_usage: stats.cpu_stats.cpu_usage.total_usage,
+            },
+            Err(_) => Stats { cpu_usage: 0 },
+        }
     }
 }
 

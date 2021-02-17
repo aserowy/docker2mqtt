@@ -1,8 +1,11 @@
+use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
 use std::time::Duration;
 
-use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
-
 use crate::Args;
+
+use self::message::Message;
+
+pub mod message;
 
 pub struct MqttClient {
     client: rumqttc::AsyncClient,
@@ -25,10 +28,10 @@ impl MqttClient {
         (MqttClient { client }, MqttLoop { eventloop })
     }
 
-    pub async fn send_message(&self, topic: String, payload: String, args: &Args) {
+    pub async fn send_message(&self, message: Message, args: &Args) {
         let tkn = &self
             .client
-            .publish(topic, get_qos(args), true, payload)
+            .publish(message.topic, get_qos(args), true, message.payload)
             .await;
 
         match tkn {
