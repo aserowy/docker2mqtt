@@ -1,4 +1,4 @@
-use rs_docker::{container::HostConfig, Docker};
+use dockworker::{container::ContainerFilters, Docker};
 
 pub struct DockerClient {
     client: Docker,
@@ -17,7 +17,7 @@ pub struct Stats {
 
 impl DockerClient {
     pub fn new() -> DockerClient {
-        match Docker::connect("unix:///var/run/docker.sock") {
+        match Docker::connect_with_defaults() {
             Ok(client) => DockerClient { client },
             Err(e) => {
                 panic!("{}", e);
@@ -26,7 +26,9 @@ impl DockerClient {
     }
 
     pub fn get_containers(&mut self) -> Vec<Container> {
-        let containers = match self.client.get_containers(true) {
+        let filter = ContainerFilters::new();
+
+        let containers = match self.client.list_containers(Some(true), None, None, filter) {
             Ok(containers) => containers,
             Err(e) => {
                 panic!("{}", e);
@@ -47,33 +49,22 @@ impl DockerClient {
     }
 
     pub fn get_stats(&mut self, container: &Container) -> Stats {
-        let wrapper = rs_docker::container::Container {
-            Id: container.id.to_owned(),
-            Status: container.status.to_owned(),
+        match self.client.stats(&container.id, Some(false), Some(true)) {
+            Ok(stats) => {
+                for stat in stats {
+                    println!("{:#?}", stat.unwrap());
+                }
+            }
+            Err(_) => (), //Stats { cpu_usage: 0 },
+        }
 
-            Image: "".to_owned(),
-            Command: "".to_owned(),
-            Created: 0,
-            Names: vec![],
-            Ports: vec![],
-            SizeRw: None,
-            SizeRootFs: 0,
-            Labels: None,
-            HostConfig: HostConfig {
-                NetworkMode: "".to_owned(),
-            },
-        };
-
-        match self.client.get_stats(&wrapper) {
-            Ok(stats) => Stats {
-                cpu_usage: stats.cpu_stats.cpu_usage.total_usage,
-            },
-            Err(_) => Stats { cpu_usage: 0 },
+        Stats {
+            cpu_usage: 0, //stats.,
         }
     }
 }
 
-fn get_container_name(container: &rs_docker::container::Container) -> &str {
+fn get_container_name(container: &dockworker::container::Container) -> &str {
     let container_name = &container.Names[0];
     let (first_char, remainder) = split_first_char_remainder(container_name);
 

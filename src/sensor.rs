@@ -36,7 +36,7 @@ pub fn get_messages(
     container: &Container,
 ) -> Vec<Message> {
     let messages = vec![
-        // get_sensor_messages(args, docker_client, container, Sensor::CpuUsage),
+        get_sensor_messages(args, docker_client, container, Sensor::CpuUsage),
         get_sensor_messages(args, docker_client, container, Sensor::Image),
         get_sensor_messages(args, docker_client, container, Sensor::Status),
     ];
