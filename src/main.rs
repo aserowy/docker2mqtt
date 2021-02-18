@@ -1,8 +1,7 @@
-use mqtt::message::Message;
+use mqtt::{client::MqttClient, message::Message};
 use tokio::{task, time};
 
 use crate::docker::DockerClient;
-use crate::mqtt::MqttClient;
 
 mod docker;
 mod mqtt;
