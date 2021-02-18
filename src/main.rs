@@ -1,7 +1,6 @@
-use mqtt::{client::MqttClient, message::Message};
 use tokio::{task, time};
 
-use crate::docker::DockerClient;
+use crate::{docker::DockerClient, mqtt::client::MqttClient, sensor::Sensor};
 
 mod docker;
 mod mqtt;
@@ -43,19 +42,15 @@ async fn main() {
         let mut interval = time::interval(time::Duration::from_secs(15));
 
         loop {
-            let mut docker_client = DockerClient::new();
+            let docker_client = DockerClient::new();
+            let containers = docker_client.get_containers();
 
-            let messages = docker_client
-                .get_containers()
+            let sensors: Vec<Sensor> = containers
                 .iter()
-                .flat_map(|container| sensor::get_messages(&args, &mut docker_client, container))
-                .collect::<Vec<Message>>();
+                .flat_map(|container| sensor::get_sensors(&docker_client, container))
+                .collect();
 
-            for message in messages {
-                println!("topic: {}, payload: {}", message.topic, message.payload);
-
-                mqtt_client.send_message(message, &args).await;
-            }
+            mqtt::send_messages_for(&mqtt_client, sensors, &args).await;
 
             interval.tick().await;
         }

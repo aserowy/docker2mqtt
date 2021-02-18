@@ -1,11 +1,17 @@
 use serde::Serialize;
 
-use crate::{docker::Container, Args};
+use crate::{sensor::Sensor, Args};
 
-use super::{availability, state, HassioErr, HassioResult, Sensor};
+use super::topic;
 
-pub fn topic(args: &Args, container: &Container, sensor: &Sensor) -> HassioResult<String> {
-    let (_, unique_id) = get_ids(&args.client_id, container, &sensor.to_string());
+pub type HassioResult<T> = Result<T, HassioErr>;
+
+pub enum HassioErr {
+    PrefixNotSet,
+}
+
+pub fn topic<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
+    let (_, unique_id) = get_ids(&args.client_id, sensor);
 
     let prefix = match args.hass_discovery_prefix.to_owned() {
         Some(value) => value,
@@ -18,14 +24,14 @@ pub fn topic(args: &Args, container: &Container, sensor: &Sensor) -> HassioResul
     ))
 }
 
-pub fn payload(args: &Args, container: &Container, sensor: &Sensor) -> HassioResult<String> {
-    let (device_name, unique_id) = get_ids(&args.client_id, container, &sensor.to_string());
+pub fn payload<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
+    let (device_name, unique_id) = get_ids(&args.client_id, sensor);
 
     let mut identifiers = Vec::new();
     identifiers.push(device_name.to_string());
 
     let sensor = HassioSensor {
-        availability_topic: availability::topic(args, container, sensor),
+        availability_topic: topic::availability(sensor, args),
         device: HassioDevice {
             identifiers,
             manufacturer: "docker2mqtt".to_string(),
@@ -36,7 +42,7 @@ pub fn payload(args: &Args, container: &Container, sensor: &Sensor) -> HassioRes
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
         platform: "mqtt".to_string(),
-        state_topic: state::topic(args, container, sensor),
+        state_topic: topic::state(sensor, args),
         unique_id,
     };
 
@@ -63,9 +69,12 @@ struct HassioDevice {
     pub name: String,
 }
 
-fn get_ids(client_id: &str, container: &Container, sensor: &str) -> (String, String) {
-    let device_name = format!("docker_{}_{}", client_id, container.name);
-    let unique_id = format!("{}_{}", device_name, sensor);
+fn get_ids(client_id: &str, sensor: &Sensor) -> (String, String) {
+    let container_name = &sensor.container.name;
+    let sensor_name = sensor.sensor_type.to_string();
+
+    let device_name = format!("docker_{}_{}", client_id, container_name);
+    let unique_id = format!("{}_{}", device_name, sensor_name);
 
     (device_name, unique_id)
 }

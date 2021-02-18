@@ -25,7 +25,7 @@ impl DockerClient {
         }
     }
 
-    pub fn get_containers(&mut self) -> Vec<Container> {
+    pub fn get_containers(&self) -> Vec<Container> {
         let filter = ContainerFilters::new();
 
         let containers = match self.client.list_containers(Some(true), None, None, filter) {
@@ -48,7 +48,7 @@ impl DockerClient {
         result
     }
 
-    pub fn get_stats(&mut self, container: &Container) -> Stats {
+    pub fn get_stats(&self, container: &Container) -> Stats {
         match self.client.stats(&container.id, Some(false), Some(true)) {
             Ok(stats) => {
                 for stat in stats {

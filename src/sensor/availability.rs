@@ -1,25 +1,19 @@
-use crate::{docker::Container, Args};
+use crate::docker::Container;
 
-use super::{topic, Sensor};
+use super::{Availability, SensorType};
 
-pub fn topic(args: &Args, container: &Container, sensor: &Sensor) -> String {
+pub fn get_availability(container: &Container, sensor: &SensorType) -> Availability {
     match sensor {
-        Sensor::CpuUsage => topic::device_availability(&args.client_id, &container.name),
-        _ => topic::sensor_availibility(&args.client_id, &container.name, &sensor.to_string()),
+        SensorType::Image => Availability::Online,
+        SensorType::Status => Availability::Online,
+        _ => container_availability(container),
     }
 }
 
-pub fn payload(container: &Container, sensor: &Sensor) -> String {
-    match sensor {
-        Sensor::CpuUsage => container_availability(container),
-        _ => "online".to_owned(),
-    }
-}
-
-fn container_availability(container: &Container) -> String {
+fn container_availability(container: &Container) -> Availability {
     if container.status.starts_with("Up") {
-        "online".to_owned()
+        Availability::Online
     } else {
-        "offline".to_owned()
+        Availability::Offline
     }
 }

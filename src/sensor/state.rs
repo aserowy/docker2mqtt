@@ -1,19 +1,12 @@
-use crate::{
-    docker::{Container, DockerClient},
-    Args,
-};
+use crate::docker::{Container, DockerClient};
 
-use super::{topic, Sensor};
+use super::SensorType;
 
-pub fn topic(args: &Args, container: &Container, sensor: &Sensor) -> String {
-    topic::state(&args.client_id, &container.name, &sensor.to_string())
-}
-
-pub fn payload(docker_client: &mut DockerClient, container: &Container, sensor: &Sensor) -> String {
+pub fn get_state(client: &DockerClient, container: &Container, sensor: &SensorType) -> String {
     match sensor {
-        Sensor::CpuUsage => get_cpu_usage_payload(docker_client, container),
-        Sensor::Image => container.image.to_owned(),
-        Sensor::Status => get_status_payload(container),
+        SensorType::CpuUsage => get_cpu_usage_payload(client, container),
+        SensorType::Image => container.image.to_owned(),
+        SensorType::Status => get_status_payload(container),
     }
 }
 
@@ -38,6 +31,6 @@ fn get_status_payload(container: &Container) -> String {
     result
 }
 
-fn get_cpu_usage_payload(docker_client: &mut DockerClient, container: &Container) -> String {
-    docker_client.get_stats(container).cpu_usage.to_string()
+fn get_cpu_usage_payload(client: &DockerClient, container: &Container) -> String {
+    client.get_stats(container).cpu_usage.to_string()
 }
