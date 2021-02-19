@@ -17,10 +17,13 @@ impl MqttClient {
             args.mqtt_host.to_owned(),
             args.mqtt_port,
         );
-        options.set_clean_session(true);
-        options.set_connection_timeout(args.mqtt_op_timeout);
-        options.set_keep_alive(args.mqtt_keep_alive);
-        options.set_pending_throttle(Duration::from_secs(1));
+        options
+            .set_clean_session(true)
+            .set_connection_timeout(args.mqtt_op_timeout)
+            .set_keep_alive(args.mqtt_keep_alive)
+            .set_pending_throttle(Duration::from_secs(1));
+
+        set_credentials(args, &mut options);
 
         let (client, eventloop) = AsyncClient::new(options, 100);
 
@@ -40,6 +43,20 @@ impl MqttClient {
             _ => (),
         }
     }
+}
+
+fn set_credentials(args: &Args, options: &mut MqttOptions) -> () {
+    let username = match &args.mqtt_username {
+        Some(username) => username,
+        None => return,
+    };
+
+    let password = match &args.mqtt_password {
+        Some(password) => password,
+        None => return,
+    };
+
+    options.set_credentials(username, password);
 }
 
 pub struct MqttLoop {

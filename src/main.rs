@@ -14,12 +14,10 @@ pub struct Args {
     mqtt_host: String,
     mqtt_keep_alive: u16,
     mqtt_op_timeout: u64,
-    // mqtt_password: Option<String>,
+    mqtt_password: Option<String>,
     mqtt_port: u16,
-    // mqtt_tls_mozilla_root_cas: bool,
-    // mqtt_tls_server_ca_file: Option<String>,
-    // mqtt_username: Option<String>,
     mqtt_qos: i32,
+    mqtt_username: Option<String>,
 }
 
 #[tokio::main]
@@ -32,12 +30,10 @@ async fn main() {
         mqtt_host: "mosquitto".to_owned(),
         mqtt_keep_alive: 30,
         mqtt_op_timeout: 20,
-        // mqtt_password: Option::None,
-        // mqtt_tls_mozilla_root_cas: false,
+        mqtt_password: Option::None,
         mqtt_port: 1883,
-        // mqtt_tls_server_ca_file: Option::None,
-        // mqtt_username: Option::None,
         mqtt_qos: 1,
+        mqtt_username: Option::None,
     };
 
     let (mqtt_client, mqtt_loop) = MqttClient::new(&args).await;
@@ -54,7 +50,7 @@ async fn main() {
                 .flat_map(|container| sensor::get_sensors(&docker_client, container))
                 .collect();
 
-            mqtt::send_messages_for(&mqtt_client, sensors, &args).await;
+            mqtt::send_sensor_messages(&mqtt_client, sensors, &args).await;
 
             interval.tick().await;
         }

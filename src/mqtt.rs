@@ -7,7 +7,7 @@ mod discovery;
 mod message;
 mod topic;
 
-pub async fn send_messages_for<'a>(
+pub async fn send_sensor_messages<'a>(
     mqtt_client: &MqttClient,
     sensors: Vec<Sensor<'a>>,
     args: &Args,

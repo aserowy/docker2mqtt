@@ -13,7 +13,7 @@ pub enum HassioErr {
 
 pub fn topic<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
     match args.hassio_discovery_enabled {
-        Some(true) => {}
+        Some(true) => (),
         Some(false) => return Err(HassioErr::DiscoveryDisabled),
         None => return Err(HassioErr::DiscoveryDisabled),
     }
@@ -33,7 +33,7 @@ pub fn topic<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
 
 pub fn payload<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
     match args.hassio_discovery_enabled {
-        Some(true) => {}
+        Some(true) => (),
         Some(false) => return Err(HassioErr::DiscoveryDisabled),
         None => return Err(HassioErr::DiscoveryDisabled),
     }
