@@ -8,7 +8,9 @@ mod sensor;
 
 pub struct Args {
     client_id: String,
-    hass_discovery_prefix: Option<String>,
+    hassio_discovery_enabled: Option<bool>,
+    hassio_discovery_prefix: Option<String>,
+    hassio_device_prefix: Option<String>,
     mqtt_host: String,
     mqtt_keep_alive: u16,
     mqtt_op_timeout: u64,
@@ -24,7 +26,9 @@ pub struct Args {
 async fn main() {
     let args = Args {
         client_id: "testhost".to_owned(),
-        hass_discovery_prefix: Option::Some("homeassistant".to_owned()),
+        hassio_discovery_enabled: Option::Some(true),
+        hassio_discovery_prefix: Option::Some("homeassistant".to_owned()),
+        hassio_device_prefix: Option::Some("docker".to_owned()),
         mqtt_host: "mosquitto".to_owned(),
         mqtt_keep_alive: 30,
         mqtt_op_timeout: 20,
