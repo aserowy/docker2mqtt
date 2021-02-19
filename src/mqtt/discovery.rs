@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::{sensor::Sensor, Args};
+use crate::{configuration::Configuration, sensor::Sensor};
 
 use super::topic;
 
@@ -11,16 +11,16 @@ pub enum HassioErr {
     PrefixNotSet,
 }
 
-pub fn topic<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
-    match args.hassio_discovery_enabled {
+pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
+    match conf.hassio_discovery_enabled {
         Some(true) => (),
         Some(false) => return Err(HassioErr::DiscoveryDisabled),
         None => return Err(HassioErr::DiscoveryDisabled),
     }
 
-    let (_, unique_id) = get_ids(args, sensor);
+    let (_, unique_id) = get_ids(conf, sensor);
 
-    let prefix = match args.hassio_discovery_prefix.to_owned() {
+    let prefix = match conf.hassio_discovery_prefix.to_owned() {
         Some(value) => value,
         None => return Err(HassioErr::PrefixNotSet),
     };
@@ -31,20 +31,20 @@ pub fn topic<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
     ))
 }
 
-pub fn payload<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
-    match args.hassio_discovery_enabled {
+pub fn payload<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
+    match conf.hassio_discovery_enabled {
         Some(true) => (),
         Some(false) => return Err(HassioErr::DiscoveryDisabled),
         None => return Err(HassioErr::DiscoveryDisabled),
     }
 
-    let (device_name, unique_id) = get_ids(args, sensor);
+    let (device_name, unique_id) = get_ids(conf, sensor);
 
     let mut identifiers = Vec::new();
     identifiers.push(device_name.to_string());
 
     let sensor = HassioSensor {
-        availability_topic: topic::availability(sensor, args),
+        availability_topic: topic::availability(sensor, conf),
         device: HassioDevice {
             identifiers,
             manufacturer: "docker2mqtt".to_string(),
@@ -55,7 +55,7 @@ pub fn payload<'a>(sensor: &Sensor<'a>, args: &Args) -> HassioResult<String> {
         payload_available: "online".to_string(),
         payload_not_available: "offline".to_string(),
         platform: "mqtt".to_string(),
-        state_topic: topic::state(sensor, args),
+        state_topic: topic::state(sensor, conf),
         unique_id,
     };
 
@@ -82,16 +82,16 @@ struct HassioDevice {
     pub name: String,
 }
 
-fn get_ids(args: &Args, sensor: &Sensor) -> (String, String) {
+fn get_ids(conf: &Configuration, sensor: &Sensor) -> (String, String) {
     let container_name = &sensor.container.name;
     let sensor_name = sensor.sensor_type.to_string();
 
-    let device_prefix = match &args.hassio_device_prefix {
+    let device_prefix = match &conf.hassio_device_prefix {
         Some(prefix) => prefix,
         None => "docker",
     };
 
-    let device_name = format!("{}_{}_{}", device_prefix, args.client_id, container_name);
+    let device_name = format!("{}_{}_{}", device_prefix, conf.client_id, container_name);
     let unique_id = format!("{}_{}", device_name, sensor_name);
 
     (device_name, unique_id)

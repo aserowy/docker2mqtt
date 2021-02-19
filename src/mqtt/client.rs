@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
 
-use crate::Args;
+use crate::configuration::Configuration;
 
 use super::message::Message;
 
@@ -11,29 +11,29 @@ pub struct MqttClient {
 }
 
 impl MqttClient {
-    pub async fn new(args: &Args) -> (MqttClient, MqttLoop) {
+    pub async fn new(conf: &Configuration) -> (MqttClient, MqttLoop) {
         let mut options = MqttOptions::new(
-            args.client_id.to_owned(),
-            args.mqtt_host.to_owned(),
-            args.mqtt_port,
+            conf.client_id.to_owned(),
+            conf.mqtt_host.to_owned(),
+            conf.mqtt_port,
         );
         options
             .set_clean_session(true)
-            .set_connection_timeout(args.mqtt_op_timeout)
-            .set_keep_alive(args.mqtt_keep_alive)
+            .set_connection_timeout(conf.mqtt_connection_timeout)
+            .set_keep_alive(conf.mqtt_keep_alive)
             .set_pending_throttle(Duration::from_secs(1));
 
-        set_credentials(args, &mut options);
+        set_credentials(conf, &mut options);
 
         let (client, eventloop) = AsyncClient::new(options, 100);
 
         (MqttClient { client }, MqttLoop { eventloop })
     }
 
-    pub async fn send_message(&self, message: Message, args: &Args) {
+    pub async fn send_message(&self, message: Message, conf: &Configuration) {
         let tkn = &self
             .client
-            .publish(message.topic, get_qos(args), true, message.payload)
+            .publish(message.topic, get_qos(conf), true, message.payload)
             .await;
 
         match tkn {
@@ -45,13 +45,13 @@ impl MqttClient {
     }
 }
 
-fn set_credentials(args: &Args, options: &mut MqttOptions) -> () {
-    let username = match &args.mqtt_username {
+fn set_credentials(conf: &Configuration, options: &mut MqttOptions) -> () {
+    let username = match &conf.mqtt_username {
         Some(username) => username,
         None => return,
     };
 
-    let password = match &args.mqtt_password {
+    let password = match &conf.mqtt_password {
         Some(password) => password,
         None => return,
     };
@@ -83,14 +83,14 @@ impl MqttLoop {
     }
 }
 
-fn get_qos(args: &Args) -> QoS {
-    match args.mqtt_qos {
+fn get_qos(conf: &Configuration) -> QoS {
+    match conf.mqtt_qos {
         0 => QoS::AtMostOnce,
         1 => QoS::ExactlyOnce,
         2 => QoS::AtLeastOnce,
         _ => panic!(
             "mqtt_qos invalid, must be between 0 and 2, but {} is configured",
-            args.mqtt_qos
+            conf.mqtt_qos
         ),
     }
 }
