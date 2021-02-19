@@ -18,6 +18,8 @@ async fn main() {
         let mut interval = time::interval(time::Duration::from_secs(15));
 
         loop {
+            interval.tick().await;
+
             let docker_client = DockerClient::new();
             let containers = docker_client.get_containers();
 
@@ -27,8 +29,6 @@ async fn main() {
                 .collect();
 
             mqtt::send_sensor_messages(&mqtt_client, sensors, &conf).await;
-
-            interval.tick().await;
         }
     });
 
