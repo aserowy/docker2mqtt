@@ -8,8 +8,8 @@ pub fn availability(sensor: &Sensor, conf: &Configuration) -> String {
     let sensor_name = &sensor.sensor_type.to_string();
 
     match sensor.sensor_type {
-        &SensorType::CpuUsage => device_availability(&conf.client_id, container_name),
-        _ => sensor_availibility(&conf.client_id, container_name, sensor_name),
+        &SensorType::CpuUsage => device_availability(&conf.mqtt.client_id, container_name),
+        _ => sensor_availibility(&conf.mqtt.client_id, container_name, sensor_name),
     }
 }
 
@@ -19,7 +19,7 @@ pub fn state(sensor: &Sensor, conf: &Configuration) -> String {
 
     format!(
         "{}/{}/state",
-        base(&conf.client_id, container_name),
+        base(&conf.mqtt.client_id, container_name),
         sensor_name
     )
 }

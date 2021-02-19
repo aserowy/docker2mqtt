@@ -11,20 +11,7 @@ mod sensor;
 
 #[tokio::main]
 async fn main() {
-    let conf = Configuration {
-        client_id: "testhost".to_owned(),
-        hassio_discovery_enabled: Option::Some(true),
-        hassio_discovery_prefix: Option::Some("homeassistant".to_owned()),
-        hassio_device_prefix: Option::Some("docker".to_owned()),
-        mqtt_connection_timeout: 20,
-        mqtt_host: "mosquitto".to_owned(),
-        mqtt_keep_alive: 30,
-        mqtt_password: Option::None,
-        mqtt_port: 1883,
-        mqtt_qos: 1,
-        mqtt_username: Option::None,
-    };
-
+    let conf = Configuration::new();
     let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
 
     task::spawn(async move {

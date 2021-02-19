@@ -12,7 +12,7 @@ pub enum HassioErr {
 }
 
 pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
-    match conf.hassio_discovery_enabled {
+    match conf.hassio.discovery_enabled {
         Some(true) => (),
         Some(false) => return Err(HassioErr::DiscoveryDisabled),
         None => return Err(HassioErr::DiscoveryDisabled),
@@ -20,7 +20,7 @@ pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<Stri
 
     let (_, unique_id) = get_ids(conf, sensor);
 
-    let prefix = match conf.hassio_discovery_prefix.to_owned() {
+    let prefix = match conf.hassio.discovery_prefix.to_owned() {
         Some(value) => value,
         None => return Err(HassioErr::PrefixNotSet),
     };
@@ -32,7 +32,7 @@ pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<Stri
 }
 
 pub fn payload<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
-    match conf.hassio_discovery_enabled {
+    match conf.hassio.discovery_enabled {
         Some(true) => (),
         Some(false) => return Err(HassioErr::DiscoveryDisabled),
         None => return Err(HassioErr::DiscoveryDisabled),
@@ -86,12 +86,15 @@ fn get_ids(conf: &Configuration, sensor: &Sensor) -> (String, String) {
     let container_name = &sensor.container.name;
     let sensor_name = sensor.sensor_type.to_string();
 
-    let device_prefix = match &conf.hassio_device_prefix {
+    let device_prefix = match &conf.hassio.device_prefix {
         Some(prefix) => prefix,
         None => "docker",
     };
 
-    let device_name = format!("{}_{}_{}", device_prefix, conf.client_id, container_name);
+    let device_name = format!(
+        "{}_{}_{}",
+        device_prefix, conf.mqtt.client_id, container_name
+    );
     let unique_id = format!("{}_{}", device_name, sensor_name);
 
     (device_name, unique_id)
