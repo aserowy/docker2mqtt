@@ -7,6 +7,7 @@ services:
       dockerfile: ./.devcontainer/Dockerfile
     init: true
     volumes:
+      - ./.devcontainer/docker2mqtt/config:/docker2mqtt/config
       - /var/run/docker.sock:/var/run/docker-host.sock
       - .:/workspace:cached
     cap_add:

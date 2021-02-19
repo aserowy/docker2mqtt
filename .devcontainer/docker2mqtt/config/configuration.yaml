@@ -1,0 +1,14 @@
+hassio:
+  discovery_enabled: true # default: false 
+  # discovery_prefix: # default: homeassistant
+  # device_prefix: # default: docker
+
+mqtt:
+  client_id: hostname
+  # connection_timeout: # default: 20
+  host: mosquitto
+  # keep_alive: # default: 30
+  # password: # default: None 
+  # port: # default: 1883 
+  qos: 1 # default: 0
+  # username: # default: None 
