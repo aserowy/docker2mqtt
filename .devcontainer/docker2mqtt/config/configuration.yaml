@@ -1,5 +1,5 @@
 hassio:
-  discovery: false
+  discovery: true
   # discovery_prefix: # default: homeassistant
   # device_prefix: # default: docker
 

@@ -14,14 +14,9 @@ pub enum HassioErr {
 }
 
 pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
-    let hassio = match &conf.hassio {
-        Some(hassio) => match hassio {
-            Hassio {
-                discovery: false, ..
-            } => return Err(HassioErr::DiscoveryDisabled),
-            _ => hassio,
-        },
-        None => return Err(HassioErr::DiscoveryDisabled),
+    let hassio = match get_hassio(conf) {
+        Ok(hassio) => hassio,
+        Err(e) => return Err(e),
     };
 
     let (_, unique_id) = get_ids(conf, hassio, sensor);
@@ -33,14 +28,9 @@ pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<Stri
 }
 
 pub fn payload<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
-    let hassio = match &conf.hassio {
-        Some(hassio) => match hassio {
-            Hassio {
-                discovery: false, ..
-            } => return Err(HassioErr::DiscoveryDisabled),
-            _ => hassio,
-        },
-        None => return Err(HassioErr::DiscoveryDisabled),
+    let hassio = match get_hassio(conf) {
+        Ok(hassio) => hassio,
+        Err(e) => return Err(e),
     };
 
     let (device_name, unique_id) = get_ids(conf, hassio, sensor);
@@ -85,6 +75,18 @@ struct HassioDevice {
     pub manufacturer: String,
     pub model: String,
     pub name: String,
+}
+
+fn get_hassio(conf: &Configuration) -> HassioResult<&Hassio> {
+    match &conf.hassio {
+        Some(hassio) => match hassio {
+            Hassio {
+                discovery: false, ..
+            } => return Err(HassioErr::DiscoveryDisabled),
+            _ => Ok(hassio),
+        },
+        None => return Err(HassioErr::DiscoveryDisabled),
+    }
 }
 
 fn get_ids(conf: &Configuration, hassio: &Hassio, sensor: &Sensor) -> (String, String) {
