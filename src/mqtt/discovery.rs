@@ -2,7 +2,7 @@ use serde::Serialize;
 
 use crate::{
     configuration::{Configuration, Hassio},
-    sensor::Sensor,
+    sensor::{Availability, Sensor},
 };
 
 use super::topic;
@@ -47,8 +47,8 @@ pub fn payload<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<St
             name: device_name.to_string(),
         },
         name: unique_id.to_string(),
-        payload_available: "online".to_string(),
-        payload_not_available: "offline".to_string(),
+        payload_available: Availability::Online.to_string(),
+        payload_not_available: Availability::Offline.to_string(),
         platform: "mqtt".to_string(),
         state_topic: topic::state(sensor, conf),
         unique_id,
