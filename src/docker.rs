@@ -12,7 +12,34 @@ pub struct Container {
 }
 
 pub struct Stats {
-    pub cpu_usage: u64,
+    pub cpu_usage: f64,
+    pub memory_usage: f64,
+}
+
+impl Stats {
+    fn new(stats: dockworker::stats::Stats) -> Stats {
+        let mut cpu_usage = 0.0;
+        if let Some(usage) = stats.cpu_usage() {
+            cpu_usage = usage;
+        }
+
+        let mut memory_usage = 0.0;
+        if let Some(usage) = stats.memory_usage() {
+            memory_usage = usage;
+        }
+
+        Stats {
+            cpu_usage,
+            memory_usage,
+        }
+    }
+
+    fn default() -> Stats {
+        Stats {
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        }
+    }
 }
 
 impl DockerClient {
@@ -49,18 +76,20 @@ impl DockerClient {
     }
 
     pub fn get_stats(&self, container: &Container) -> Stats {
-        match self.client.stats(&container.id, Some(false), Some(true)) {
-            Ok(stats) => {
-                for stat in stats {
-                    println!("{:#?}", stat.unwrap());
-                }
-            }
-            Err(_) => (), //Stats { cpu_usage: 0 },
-        }
+        let mut stats_reader = match self.client.stats(&container.id, Some(false), Some(true)) {
+            Ok(rdr) => rdr,
+            Err(_) => return Stats::default(),
+        };
 
-        Stats {
-            cpu_usage: 0, //stats.,
-        }
+        let stats = match stats_reader.next() {
+            Some(nxt) => match nxt {
+                Ok(stts) => stts,
+                Err(_) => return Stats::default(),
+            },
+            None => return Stats::default(),
+        };
+
+        Stats::new(stats)
     }
 }
 

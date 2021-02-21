@@ -28,6 +28,7 @@ impl fmt::Display for Availability {
 pub enum SensorType {
     CpuUsage,
     Image,
+    MemoryUsage,
     Status,
 }
 
@@ -41,6 +42,7 @@ pub fn get_sensors<'a>(client: &'a DockerClient, container: &'a Container) -> Ve
     vec![
         get_sensor(client, container, &SensorType::CpuUsage),
         get_sensor(client, container, &SensorType::Image),
+        get_sensor(client, container, &SensorType::MemoryUsage),
         get_sensor(client, container, &SensorType::Status),
     ]
 }
