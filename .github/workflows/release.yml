@@ -2,8 +2,6 @@ name: armv7_pipeline
 
 on:
   push:
-    branches:
-      - "release/v*.*.*"
     tags:
       - "v*.*.*"
 
