@@ -1,0 +1,13 @@
+[package]
+authors = ["Alexander Serowy <serowy@hotmail.com>"]
+edition = "2018"
+name = "docker2mqtt"
+version = "0.0.1"
+
+[dependencies]
+dockworker = "0.0.22"
+rumqttc = "0.5"
+serde = {version = "1", features = ["derive"]}
+serde_json = "1"
+serde_yaml = "0.8"
+tokio = {version = "1", features = ["full"]}

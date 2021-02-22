@@ -1,0 +1,41 @@
+version: "3.0"
+services:
+  # dev
+  docker2mqtt:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    init: true
+    volumes:
+      - ./docker2mqtt/config:/docker2mqtt/config
+      - /var/run/docker.sock:/var/run/docker-host.sock
+      - ../:/workspace:cached
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    command: /bin/sh -c "while sleep 1000; do :; done"
+
+  # home assistant
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+  home-assistant:
+    image: homeassistant/home-assistant:stable
+    container_name: home-assistant
+    restart: always
+    depends_on:
+      - mosquitto
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./home-assistant:/config
+      - /etc/localtime:/etc/localtime:ro

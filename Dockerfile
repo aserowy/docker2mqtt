@@ -1,7 +1,7 @@
 FROM debian:buster-slim
 
-RUN apt update
-RUN apt install -y \
+RUN apt update && \
+    apt install --no-install-recommends -y \
     apt-transport-https \
     ca-certificates \
     curl \
@@ -9,21 +9,21 @@ RUN apt install -y \
     software-properties-common
 
 # -k workaround on armhf envs
-RUN curl -fsSL -k https://download.docker.com/linux/debian/gpg | apt-key add -
-RUN add-apt-repository \
-   "deb [arch=armhf] https://download.docker.com/linux/debian \
-   $(lsb_release -cs) \
-   stable"
+RUN curl -fsSL -k https://download.docker.com/linux/debian/gpg | apt-key add - && \
+    add-apt-repository \
+    "deb [arch=armhf] https://download.docker.com/linux/debian \
+    $(lsb_release -cs) \
+    stable"
 
-RUN apt-get update
-RUN apt-get install -y \
-    docker-ce-cli \
-    python3-paho-mqtt
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y docker-ce-cli
 
 RUN rm -rf /var/lib/apt/lists/*
 
-COPY docker2mqtt .
+# configuration and persistance of docker2mqtt
+RUN mkdir -p /docker2mqtt/config
+VOLUME ["/docker2mqtt/config"]
 
-RUN chmod +x /docker2mqtt
+COPY /target/armv7-unknown-linux-gnueabihf/release/docker2mqtt /docker2mqtt/
 
-ENTRYPOINT ["/docker2mqtt"]
+ENTRYPOINT ["/docker2mqtt/docker2mqtt"]

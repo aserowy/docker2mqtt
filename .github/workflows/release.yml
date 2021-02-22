@@ -1,0 +1,62 @@
+name: armv7_pipeline
+
+on:
+  push:
+    branches:
+      - "release/**"
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  linux_armv7:
+    name: linux_armv7
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: set_version_tag
+        run: echo ::set-env name=RELEASE_VERSION::$(echo ${GITHUB_REF:10})
+
+      - name: setup_toolchain_armv7
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: armv7-unknown-linux-gnueabihf
+          override: true
+
+      - name: cargo_dependency_cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: cargo_build_armv7
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --target armv7-unknown-linux-gnueabihf --release
+
+      - name: docker_login
+        run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
+
+      - name: docker_setup_qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: docker_setup_buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          version: latest
+
+      - name: docker_build
+        run: |
+          docker buildx build --push \
+            --tag serowy/docker2mqtt:$RELEASE_VERSION \
+            --platform linux/arm/v7 .
