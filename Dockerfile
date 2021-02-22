@@ -5,6 +5,7 @@ RUN apt update && \
     apt-transport-https \
     ca-certificates \
     curl \
+    gnupg \
     gnupg-agent \
     software-properties-common
 
