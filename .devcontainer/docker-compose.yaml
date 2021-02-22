@@ -4,12 +4,12 @@ services:
   docker2mqtt:
     build:
       context: .
-      dockerfile: ./.devcontainer/Dockerfile
+      dockerfile: ./Dockerfile
     init: true
     volumes:
-      - ./.devcontainer/docker2mqtt/config:/docker2mqtt/config
+      - ./docker2mqtt/config:/docker2mqtt/config
       - /var/run/docker.sock:/var/run/docker-host.sock
-      - .:/workspace:cached
+      - ../:/workspace:cached
     cap_add:
       - SYS_PTRACE
     security_opt:
@@ -25,9 +25,9 @@ services:
       - "1883:1883"
       - "9001:9001"
     volumes:
-      - ./.devcontainer/mosquitto/config:/mosquitto/config
-      - ./.devcontainer/mosquitto/data:/mosquitto/data
-      - ./.devcontainer/mosquitto/log:/mosquitto/log
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
   home-assistant:
     image: homeassistant/home-assistant:stable
     container_name: home-assistant
@@ -37,5 +37,5 @@ services:
     ports:
       - "8123:8123"
     volumes:
-      - ./.devcontainer/home-assistant:/config
+      - ./home-assistant:/config
       - /etc/localtime:/etc/localtime:ro
