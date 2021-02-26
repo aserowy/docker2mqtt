@@ -4,44 +4,6 @@ pub struct DockerClient {
     client: Docker,
 }
 
-pub struct Container {
-    pub id: String,
-    pub name: String,
-    pub image: String,
-    pub status: String,
-}
-
-pub struct Stats {
-    pub cpu_usage: f64,
-    pub memory_usage: f64,
-}
-
-impl Stats {
-    fn new(stats: dockworker::stats::Stats) -> Stats {
-        let mut cpu_usage = 0.0;
-        if let Some(usage) = stats.cpu_usage() {
-            cpu_usage = usage;
-        }
-
-        let mut memory_usage = 0.0;
-        if let Some(usage) = stats.memory_usage() {
-            memory_usage = usage;
-        }
-
-        Stats {
-            cpu_usage,
-            memory_usage,
-        }
-    }
-
-    fn default() -> Stats {
-        Stats {
-            cpu_usage: 0.0,
-            memory_usage: 0.0,
-        }
-    }
-}
-
 impl DockerClient {
     pub fn new() -> DockerClient {
         match Docker::connect_with_defaults() {
@@ -90,6 +52,44 @@ impl DockerClient {
         };
 
         Stats::new(stats)
+    }
+}
+
+pub struct Container {
+    pub id: String,
+    pub name: String,
+    pub image: String,
+    pub status: String,
+}
+
+pub struct Stats {
+    pub cpu_usage: f64,
+    pub memory_usage: f64,
+}
+
+impl Stats {
+    fn new(stats: dockworker::stats::Stats) -> Stats {
+        let mut cpu_usage = 0.0;
+        if let Some(usage) = stats.cpu_usage() {
+            cpu_usage = usage;
+        }
+
+        let mut memory_usage = 0.0;
+        if let Some(usage) = stats.memory_usage() {
+            memory_usage = usage;
+        }
+
+        Stats {
+            cpu_usage,
+            memory_usage,
+        }
+    }
+
+    fn default() -> Stats {
+        Stats {
+            cpu_usage: 0.0,
+            memory_usage: 0.0,
+        }
     }
 }
 

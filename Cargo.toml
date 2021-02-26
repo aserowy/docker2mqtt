@@ -2,7 +2,7 @@
 authors = ["Alexander Serowy <serowy@hotmail.com>"]
 edition = "2018"
 name = "docker2mqtt"
-version = "0.0.1"
+version = "0.2.0"
 
 [dependencies]
 dockworker = "0.0.22"
@@ -11,3 +11,9 @@ serde = {version = "1", features = ["derive"]}
 serde_json = "1"
 serde_yaml = "0.8"
 tokio = {version = "1", features = ["full"]}
+tracing = "0.1"
+tracing-appender = "0.1"
+tracing-bunyan-formatter = "0.1"
+tracing-futures = "0.2"
+tracing-log = "0.1"
+tracing-subscriber = "0.2"
