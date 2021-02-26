@@ -27,8 +27,10 @@ RUN echo "#!/bin/sh\n\
 
 # configuration and persistance of docker2mqtt
 RUN mkdir -p /docker2mqtt/config
-
 VOLUME ["/docker2mqtt/config"]
+
+RUN mkdir -p /docker2mqtt/logs
+VOLUME ["/docker2mqtt/logs"]
 
 # VS Code overrides ENTRYPOINT and CMD when executing `docker run` by default.
 # Setting the ENTRYPOINT to docker-init.sh will configure non-root access to

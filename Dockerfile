@@ -25,6 +25,9 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /docker2mqtt/config
 VOLUME ["/docker2mqtt/config"]
 
+RUN mkdir -p /docker2mqtt/logs
+VOLUME ["/docker2mqtt/logs"]
+
 COPY /target/armv7-unknown-linux-gnueabihf/release/docker2mqtt /docker2mqtt/
 
 ENTRYPOINT ["/docker2mqtt/docker2mqtt"]
