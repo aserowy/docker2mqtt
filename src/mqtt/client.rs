@@ -1,16 +1,19 @@
-use std::time::Duration;
-
+use core::panic;
 use rumqttc::{AsyncClient, Event, EventLoop, Incoming, MqttOptions, QoS};
+use std::time::Duration;
+use tracing::{error, instrument, trace};
 
 use crate::configuration::Configuration;
 
 use super::message::Message;
 
+#[derive(Debug)]
 pub struct MqttClient {
     client: AsyncClient,
 }
 
 impl MqttClient {
+    #[instrument]
     pub async fn new(conf: &Configuration) -> (MqttClient, MqttLoop) {
         let mut options = MqttOptions::new(
             conf.mqtt.client_id.to_owned(),
@@ -30,6 +33,7 @@ impl MqttClient {
         (MqttClient { client }, MqttLoop { eventloop })
     }
 
+    #[instrument(level = "debug")]
     pub async fn send_message(&self, message: Message, conf: &Configuration) {
         let tkn = &self
             .client
@@ -38,7 +42,7 @@ impl MqttClient {
 
         match tkn {
             Err(e) => {
-                panic!("{}", e);
+                error!("could not publish to mqtt broker: {}", e);
             }
             _ => (),
         }
@@ -64,18 +68,16 @@ pub struct MqttLoop {
 }
 
 impl MqttLoop {
+    #[instrument(skip(self))]
     pub async fn start_loop(mut self) {
         loop {
             match self.eventloop.poll().await {
                 Ok(Event::Incoming(Incoming::Publish(p))) => {
-                    println!("Topic: {}, Payload: {:?}", p.topic, p.payload)
+                    trace!("incoming publish mqtt event: {}, {:?}", p.topic, p.payload)
                 }
-                Ok(Event::Incoming(i)) => {
-                    println!("Incoming = {:?}", i);
-                }
-                Ok(Event::Outgoing(o)) => println!("Outgoing = {:?}", o),
+                Ok(_) => {}
                 Err(e) => {
-                    println!("Error = {:?}", e);
+                    error!("could not connect to mqtt broker: {}", e);
                     continue;
                 }
             }
@@ -88,9 +90,13 @@ fn get_qos(conf: &Configuration) -> QoS {
         0 => QoS::AtMostOnce,
         1 => QoS::ExactlyOnce,
         2 => QoS::AtLeastOnce,
-        _ => panic!(
-            "mqtt_qos invalid, must be between 0 and 2, but {} is configured",
-            conf.mqtt.qos
-        ),
+        _ => {
+            error!(
+                "mqtt_qos invalid, must be between 0 and 2, but {} is configured",
+                conf.mqtt.qos
+            );
+
+            panic!();
+        }
     }
 }

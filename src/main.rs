@@ -6,11 +6,14 @@ use crate::{
 
 mod configuration;
 mod docker;
+mod logging;
 mod mqtt;
 mod sensor;
 
 #[tokio::main]
 async fn main() {
+    let _guards = logging::init();
+
     let conf = Configuration::new();
     let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
 

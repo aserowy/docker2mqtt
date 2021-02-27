@@ -14,6 +14,7 @@
 		"mutantdino.resourcemonitor",
 		"matklad.rust-analyzer",
 		"be5invis.toml",
+		"foxundermoon.shell-format"
 	],
 	"remoteUser": "vscode",
 	"settings": {

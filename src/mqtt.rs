@@ -1,3 +1,5 @@
+use tracing::{debug, instrument};
+
 use crate::{configuration::Configuration, sensor::Sensor};
 
 use self::{client::MqttClient, discovery::HassioResult, message::Message};
@@ -7,6 +9,7 @@ mod discovery;
 mod message;
 mod topic;
 
+#[instrument(level = "debug")]
 pub async fn send_sensor_messages<'a>(
     mqtt_client: &MqttClient,
     sensors: Vec<Sensor<'a>>,
@@ -39,7 +42,7 @@ fn get_sensor_messages<'a>(sensor: Sensor<'a>, conf: &Configuration) -> Vec<Mess
 
     match get_discovery_message(&sensor, conf) {
         Ok(message) => messages.push(message),
-        Err(_) => {}
+        Err(e) => debug!("discovery messages not generated: {:?}", e),
     }
 
     messages

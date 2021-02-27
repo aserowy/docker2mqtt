@@ -1,4 +1,5 @@
 use serde::Serialize;
+use tracing::instrument;
 
 use crate::{
     configuration::{Configuration, Hassio},
@@ -9,10 +10,12 @@ use super::topic;
 
 pub type HassioResult<T> = Result<T, HassioErr>;
 
+#[derive(Debug)]
 pub enum HassioErr {
     DiscoveryDisabled,
 }
 
+#[instrument(level = "debug")]
 pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
     let hassio = match get_hassio(conf) {
         Ok(hassio) => hassio,
@@ -27,6 +30,7 @@ pub fn topic<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<Stri
     ))
 }
 
+#[instrument(level = "debug")]
 pub fn payload<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<String> {
     let hassio = match get_hassio(conf) {
         Ok(hassio) => hassio,

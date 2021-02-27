@@ -4,8 +4,9 @@ use std::{
     fs::File,
     io::{self, Read},
 };
+use tracing::{error, instrument};
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Configuration {
     #[serde(default)]
     pub hassio: Option<Hassio>,
@@ -14,6 +15,7 @@ pub struct Configuration {
 }
 
 impl Configuration {
+    #[instrument]
     pub fn new() -> Configuration {
         let content = read_file(
             "/docker2mqtt/config/",
@@ -24,7 +26,7 @@ impl Configuration {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Hassio {
     pub discovery: bool,
 
@@ -45,7 +47,7 @@ impl Hassio {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct Mqtt {
     pub client_id: String,
     pub host: String,
@@ -91,7 +93,8 @@ fn read_file(path: &str, filename_variants: Vec<&str>) -> String {
         }
     }
 
-    panic!("Configuration file missing.")
+    error!("Configuration file missing.");
+    panic!();
 }
 
 fn read_single_file(file: String) -> io::Result<String> {

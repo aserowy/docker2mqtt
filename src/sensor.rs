@@ -1,10 +1,12 @@
 use std::fmt;
+use tracing::instrument;
 
 use crate::docker::{Container, DockerClient};
 
 mod availability;
 mod state;
 
+#[derive(Debug)]
 pub struct Sensor<'a> {
     pub sensor_type: &'a SensorType,
     pub container: &'a Container,
@@ -38,6 +40,7 @@ impl fmt::Display for SensorType {
     }
 }
 
+#[instrument(level = "debug")]
 pub fn get_sensors<'a>(client: &'a DockerClient, container: &'a Container) -> Vec<Sensor<'a>> {
     vec![
         get_sensor(client, container, &SensorType::CpuUsage),

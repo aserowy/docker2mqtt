@@ -8,6 +8,7 @@ services:
     init: true
     volumes:
       - ./docker2mqtt/config:/docker2mqtt/config
+      - ./docker2mqtt/logs:/docker2mqtt/logs
       - /var/run/docker.sock:/var/run/docker-host.sock
       - ../:/workspace:cached
     cap_add:
