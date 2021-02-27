@@ -1,7 +1,7 @@
 use std::fmt;
 use tracing::instrument;
 
-use crate::docker::Container;
+use crate::docker::container::Container;
 
 mod availability;
 mod state;

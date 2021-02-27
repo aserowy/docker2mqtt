@@ -1,6 +1,6 @@
 use tracing::instrument;
 
-use crate::docker::Container;
+use crate::docker::container::Container;
 
 use super::SensorType;
 
