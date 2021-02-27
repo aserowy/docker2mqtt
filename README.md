@@ -19,6 +19,7 @@ services:
     restart: always
     volumes:
       - ~/docker2mqtt/config:/docker2mqtt/config
+      - ~/docker2mqtt/logs:/docker2mqtt/logs
 ```
 
 In the directory `~/docker2mqtt/config` the configuration of the service is then done by `configuration.yaml`. Commented values are optional and are filled by corresponding defaults:
