@@ -2,7 +2,7 @@
 authors = ["Alexander Serowy <serowy@hotmail.com>"]
 edition = "2018"
 name = "docker2mqtt"
-version = "0.2.0"
+version = "0.1.0"
 
 [dependencies]
 dockworker = "0.0.22"
