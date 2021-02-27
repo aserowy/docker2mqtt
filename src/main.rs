@@ -19,16 +19,16 @@ async fn main() {
 
     task::spawn(async move {
         let mut interval = time::interval(time::Duration::from_secs(15));
+        let docker_client = DockerClient::new();
 
         loop {
             interval.tick().await;
 
-            let docker_client = DockerClient::new();
-            let containers = docker_client.get_containers();
+            let containers = docker_client.get_containers().await;
 
             let sensors: Vec<Sensor> = containers
                 .iter()
-                .flat_map(|container| sensor::get_sensors(&docker_client, container))
+                .flat_map(|container| sensor::get_sensors(container))
                 .collect();
 
             mqtt::send_sensor_messages(&mqtt_client, sensors, &conf).await;

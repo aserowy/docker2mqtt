@@ -1,7 +1,7 @@
 use std::fmt;
 use tracing::instrument;
 
-use crate::docker::{Container, DockerClient};
+use crate::docker::container::Container;
 
 mod availability;
 mod state;
@@ -41,24 +41,20 @@ impl fmt::Display for SensorType {
 }
 
 #[instrument(level = "debug")]
-pub fn get_sensors<'a>(client: &'a DockerClient, container: &'a Container) -> Vec<Sensor<'a>> {
+pub fn get_sensors<'a>(container: &'a Container) -> Vec<Sensor<'a>> {
     vec![
-        get_sensor(client, container, &SensorType::CpuUsage),
-        get_sensor(client, container, &SensorType::Image),
-        get_sensor(client, container, &SensorType::MemoryUsage),
-        get_sensor(client, container, &SensorType::Status),
+        get_sensor(container, &SensorType::CpuUsage),
+        get_sensor(container, &SensorType::Image),
+        get_sensor(container, &SensorType::MemoryUsage),
+        get_sensor(container, &SensorType::Status),
     ]
 }
 
-fn get_sensor<'a>(
-    client: &'a DockerClient,
-    container: &'a Container,
-    sensor_type: &'a SensorType,
-) -> Sensor<'a> {
+fn get_sensor<'a>(container: &'a Container, sensor_type: &'a SensorType) -> Sensor<'a> {
     Sensor {
         sensor_type,
         container,
         availability: availability::get_availability(container, sensor_type),
-        state: state::get_state(client, container, sensor_type),
+        state: state::get_state(container, sensor_type),
     }
 }
