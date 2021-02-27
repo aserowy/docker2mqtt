@@ -19,12 +19,12 @@ async fn main() {
 
     task::spawn(async move {
         let mut interval = time::interval(time::Duration::from_secs(15));
+        let docker_client = DockerClient::new();
 
         loop {
             interval.tick().await;
 
-            let docker_client = DockerClient::new();
-            let containers = docker_client.get_containers();
+            let containers = docker_client.get_containers().await;
 
             let sensors: Vec<Sensor> = containers
                 .iter()
