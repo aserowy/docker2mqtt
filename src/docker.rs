@@ -1,26 +1,32 @@
 use dockworker::{container::ContainerFilters, Docker};
+use tracing::{error, instrument};
 
+#[derive(Debug)]
 pub struct DockerClient {
     client: Docker,
 }
 
 impl DockerClient {
+    #[instrument(level = "debug")]
     pub fn new() -> DockerClient {
         match Docker::connect_with_defaults() {
             Ok(client) => DockerClient { client },
             Err(e) => {
-                panic!("{}", e);
+                error!("failed to create docker client: {}", e);
+                panic!();
             }
         }
     }
 
+    #[instrument(level = "debug")]
     pub fn get_containers(&self) -> Vec<Container> {
         let filter = ContainerFilters::new();
 
         let containers = match self.client.list_containers(Some(true), None, None, filter) {
             Ok(containers) => containers,
             Err(e) => {
-                panic!("{}", e);
+                error!("could not resolve containers: {}", e);
+                vec![]
             }
         };
 
@@ -37,16 +43,23 @@ impl DockerClient {
         result
     }
 
+    #[instrument(level = "debug")]
     pub fn get_stats(&self, container: &Container) -> Stats {
         let mut stats_reader = match self.client.stats(&container.id, Some(false), Some(true)) {
             Ok(rdr) => rdr,
-            Err(_) => return Stats::default(),
+            Err(e) => {
+                error!("could not resolve stats: {}", e);
+                return Stats::default();
+            }
         };
 
         let stats = match stats_reader.next() {
             Some(nxt) => match nxt {
                 Ok(stts) => stts,
-                Err(_) => return Stats::default(),
+                Err(e) => {
+                    error!("could not resolve stats: {}", e);
+                    return Stats::default();
+                }
             },
             None => return Stats::default(),
         };
@@ -55,6 +68,7 @@ impl DockerClient {
     }
 }
 
+#[derive(Debug)]
 pub struct Container {
     pub id: String,
     pub name: String,

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-#[derive(Eq)]
+#[derive(Debug, Eq)]
 pub struct Message {
     pub topic: String,
     pub payload: String,

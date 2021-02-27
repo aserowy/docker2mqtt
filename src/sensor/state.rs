@@ -1,7 +1,10 @@
+use tracing::instrument;
+
 use crate::docker::{Container, DockerClient};
 
 use super::SensorType;
 
+#[instrument(level = "debug")]
 pub fn get_state(client: &DockerClient, container: &Container, sensor: &SensorType) -> String {
     match sensor {
         SensorType::CpuUsage => get_cpu_usage_payload(client, container),

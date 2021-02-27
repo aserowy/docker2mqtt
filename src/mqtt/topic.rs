@@ -1,18 +1,29 @@
+use tracing::instrument;
+
 use crate::{
     configuration::Configuration,
     sensor::{Sensor, SensorType},
 };
 
+#[instrument(level = "debug")]
 pub fn availability(sensor: &Sensor, conf: &Configuration) -> String {
     let container_name = &sensor.container.name;
     let sensor_name = &sensor.sensor_type.to_string();
 
     match sensor.sensor_type {
+        &SensorType::Image => {
+            sensor_availibility(&conf.mqtt.client_id, container_name, sensor_name)
+        }
+        &SensorType::Status => {
+            sensor_availibility(&conf.mqtt.client_id, container_name, sensor_name)
+        }
+
         &SensorType::CpuUsage => device_availability(&conf.mqtt.client_id, container_name),
-        _ => sensor_availibility(&conf.mqtt.client_id, container_name, sensor_name),
+        &SensorType::MemoryUsage => device_availability(&conf.mqtt.client_id, container_name),
     }
 }
 
+#[instrument(level = "debug")]
 pub fn state(sensor: &Sensor, conf: &Configuration) -> String {
     let container_name = &sensor.container.name;
     let sensor_name = &sensor.sensor_type.to_string();
