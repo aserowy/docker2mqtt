@@ -28,7 +28,7 @@ async fn main() {
 
             let sensors: Vec<Sensor> = containers
                 .iter()
-                .flat_map(|container| sensor::get_sensors(&docker_client, container))
+                .flat_map(|container| sensor::get_sensors(container))
                 .collect();
 
             mqtt::send_sensor_messages(&mqtt_client, sensors, &conf).await;

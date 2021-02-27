@@ -1,25 +1,25 @@
 use tracing::instrument;
 
-use crate::docker::{Container, DockerClient};
+use crate::docker::Container;
 
 use super::SensorType;
 
 #[instrument(level = "debug")]
-pub fn get_state(client: &DockerClient, container: &Container, sensor: &SensorType) -> String {
+pub fn get_state(container: &Container, sensor: &SensorType) -> String {
     match sensor {
-        SensorType::CpuUsage => get_cpu_usage_payload(client, container),
+        SensorType::CpuUsage => get_cpu_usage_payload(container),
         SensorType::Image => container.image.to_owned(),
-        SensorType::MemoryUsage => get_memory_usage_payload(client, container),
+        SensorType::MemoryUsage => get_memory_usage_payload(container),
         SensorType::Status => get_status_payload(container),
     }
 }
 
-fn get_cpu_usage_payload(client: &DockerClient, container: &Container) -> String {
-    format!("{:.2}", client.get_stats(container).cpu_usage)
+fn get_cpu_usage_payload(container: &Container) -> String {
+    format!("{:.2}", container.stats.cpu_usage)
 }
 
-fn get_memory_usage_payload(client: &DockerClient, container: &Container) -> String {
-    format!("{:.2}", client.get_stats(container).memory_usage)
+fn get_memory_usage_payload(container: &Container) -> String {
+    format!("{:.2}", container.stats.memory_usage)
 }
 
 fn get_status_payload(container: &Container) -> String {
