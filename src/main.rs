@@ -12,7 +12,7 @@ mod sensor;
 
 #[tokio::main]
 async fn main() {
-    logging::init();
+    let _guards = logging::init();
 
     let conf = Configuration::new();
     let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
