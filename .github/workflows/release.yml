@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "release/**"
+    paths:
+      - "Cargo.toml"
 
 jobs:
   linux_armv7:
