@@ -7,7 +7,7 @@ use crate::configuration::Configuration;
 
 use super::message::Message;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct MqttClient {
     client: AsyncClient,
 }

@@ -1,6 +1,6 @@
 use tracing::{debug, instrument};
 
-use crate::{configuration::Configuration, sensor::Sensor};
+use crate::{configuration::Configuration, docker::Event};
 
 use self::{client::MqttClient, discovery::HassioResult, message::Message};
 
@@ -10,37 +10,30 @@ mod message;
 mod topic;
 
 #[instrument(level = "debug")]
-pub async fn send_sensor_messages<'a>(
+pub async fn send_event_messages(
     mqtt_client: &MqttClient,
-    sensors: Vec<Sensor<'a>>,
+    event: Event,
     conf: &Configuration,
 ) -> () {
-    let mut messages: Vec<Message> = sensors
-        .into_iter()
-        .flat_map(|sensor| get_sensor_messages(sensor, conf))
-        .collect();
-
-    messages.sort();
-    messages.dedup();
-
-    for message in messages {
+    for message in get_event_messages(event, conf).into_iter() {
         mqtt_client.send_message(message, conf).await;
     }
 }
 
-fn get_sensor_messages<'a>(sensor: Sensor<'a>, conf: &Configuration) -> Vec<Message> {
-    let mut messages = vec![
-        Message {
-            topic: topic::availability(&sensor, conf),
-            payload: sensor.availability.to_string(),
-        },
-        Message {
-            topic: topic::state(&sensor, conf),
-            payload: sensor.state.to_owned(),
-        },
-    ];
+fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
+    let mut messages = vec![Message {
+        topic: topic::availability(&event, conf),
+        payload: event.availability.to_string(),
+    }];
 
-    match get_discovery_message(&sensor, conf) {
+    if let Some(payload) = &event.payload {
+        messages.push(Message {
+            topic: topic::state(&event, conf),
+            payload: payload.to_owned(),
+        });
+    }
+
+    match get_discovery_message(&event, conf) {
         Ok(message) => messages.push(message),
         Err(e) => debug!("discovery messages not generated: {:?}", e),
     }
@@ -48,13 +41,13 @@ fn get_sensor_messages<'a>(sensor: Sensor<'a>, conf: &Configuration) -> Vec<Mess
     messages
 }
 
-fn get_discovery_message<'a>(sensor: &Sensor<'a>, conf: &Configuration) -> HassioResult<Message> {
-    let topic = match discovery::topic(sensor, conf) {
+fn get_discovery_message(event: &Event, conf: &Configuration) -> HassioResult<Message> {
+    let topic = match discovery::topic(event, conf) {
         Ok(topic) => topic,
         Err(e) => return Err(e),
     };
 
-    let payload = match discovery::payload(sensor, conf) {
+    let payload = match discovery::payload(event, conf) {
         Ok(payload) => payload,
         Err(e) => return Err(e),
     };

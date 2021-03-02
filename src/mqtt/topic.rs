@@ -2,36 +2,32 @@ use tracing::instrument;
 
 use crate::{
     configuration::Configuration,
-    sensor::{Sensor, SensorType},
+    docker::{Event, EventType},
 };
 
 #[instrument(level = "debug")]
-pub fn availability(sensor: &Sensor, conf: &Configuration) -> String {
-    let container_name = &sensor.container.name;
-    let sensor_name = &sensor.sensor_type.to_string();
+pub fn availability(event: &Event, conf: &Configuration) -> String {
+    let container_name = &event.container_id;
+    let event_name = &event.event_type.to_string();
 
-    match sensor.sensor_type {
-        &SensorType::Image => {
-            sensor_availibility(&conf.mqtt.client_id, container_name, sensor_name)
-        }
-        &SensorType::Status => {
-            sensor_availibility(&conf.mqtt.client_id, container_name, sensor_name)
-        }
+    match &event.event_type {
+        &EventType::Image => event_availibility(&conf.mqtt.client_id, container_name, event_name),
+        &EventType::Status => event_availibility(&conf.mqtt.client_id, container_name, event_name),
 
-        &SensorType::CpuUsage => device_availability(&conf.mqtt.client_id, container_name),
-        &SensorType::MemoryUsage => device_availability(&conf.mqtt.client_id, container_name),
+        &EventType::CpuUsage => device_availability(&conf.mqtt.client_id, container_name),
+        &EventType::MemoryUsage => device_availability(&conf.mqtt.client_id, container_name),
     }
 }
 
 #[instrument(level = "debug")]
-pub fn state(sensor: &Sensor, conf: &Configuration) -> String {
-    let container_name = &sensor.container.name;
-    let sensor_name = &sensor.sensor_type.to_string();
+pub fn state(event: &Event, conf: &Configuration) -> String {
+    let container_name = &event.container_id;
+    let event_name = &event.event_type.to_string();
 
     format!(
         "{}/{}/state",
         base(&conf.mqtt.client_id, container_name),
-        sensor_name
+        event_name
     )
 }
 
@@ -39,8 +35,8 @@ fn device_availability(client_id: &str, container: &str) -> String {
     format!("{}/lwt", base(client_id, container))
 }
 
-fn sensor_availibility(client_id: &str, container: &str, sensor: &str) -> String {
-    format!("{}/{}/lwt", base(client_id, container), sensor)
+fn event_availibility(client_id: &str, container: &str, event: &str) -> String {
+    format!("{}/{}/lwt", base(client_id, container), event)
 }
 
 fn base(client_id: &str, container: &str) -> String {
