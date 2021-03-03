@@ -1,272 +1,27 @@
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
-use bollard::{
-    container::{ListContainersOptions, StatsOptions},
-    models::ContainerSummaryInner,
-    system::EventsOptions,
-    Docker,
-};
 use tokio::{
     sync::{broadcast, mpsc},
     task,
 };
-use tokio_stream::StreamExt;
 use tracing::error;
 
 mod client;
+mod events;
+mod initial;
+mod stats;
 
 pub async fn spin_up(sender: mpsc::Sender<Event>) {
     let docker_client = client::new();
     let (event_sender, event_receiver_router) = broadcast::channel(500);
     let event_receiver_stats = event_sender.subscribe();
 
-    initial_event_source(event_sender.clone(), docker_client.clone()).await;
-    event_source(event_sender.clone(), docker_client.clone()).await;
+    initial::source(event_sender.clone(), docker_client.clone()).await;
+    events::source(event_sender.clone(), docker_client.clone()).await;
 
-    stats_source(event_receiver_stats, event_sender, docker_client.clone()).await;
+    stats::source(event_receiver_stats, event_sender, docker_client.clone()).await;
 
     event_router(event_receiver_router, sender).await;
-}
-
-async fn initial_event_source(event_sender: broadcast::Sender<Event>, client: Docker) -> () {
-    task::spawn(async move {
-        let filter = Some(ListContainersOptions::<String> {
-            all: true,
-            ..Default::default()
-        });
-
-        let containers = match client.list_containers(filter).await {
-            Ok(containers) => containers,
-            Err(e) => {
-                error!("could not resolve containers: {}", e);
-                vec![]
-            }
-        };
-
-        for container in containers {
-            let events = vec![
-                Event {
-                    availability: Availability::Online,
-                    container_name: get_container_name(&container).to_owned(),
-                    event: EventType::Status(ContainerEvent::Create),
-                },
-                Event {
-                    availability: Availability::Online,
-                    container_name: get_container_name(&container).to_owned(),
-                    event: EventType::Status(get_container_status(&container)),
-                },
-            ];
-
-            for event in events.into_iter() {
-                // TODO refactor into function with retry and warning on count > 1
-                match event_sender.send(event) {
-                    Ok(_) => {}
-                    Err(e) => error!("event could not be send to event_router: {}", e),
-                }
-            }
-        }
-    });
-}
-
-fn get_container_status(container: &ContainerSummaryInner) -> ContainerEvent {
-    match container.status.as_deref() {
-        Some("created") => ContainerEvent::Create,
-        Some("restarting") => ContainerEvent::Restart,
-        Some("running") => ContainerEvent::Start,
-        Some("removing") => ContainerEvent::Stop,
-        Some("paused") => ContainerEvent::Pause,
-        Some("exited") => ContainerEvent::Stop,
-        Some("dead") => ContainerEvent::Die,
-        Some(_) => ContainerEvent::Undefined,
-        None => ContainerEvent::Undefined,
-    }
-}
-
-fn get_container_name(container: &ContainerSummaryInner) -> &str {
-    let container_names = match &container.names {
-        Some(names) => names,
-        None => return "",
-    };
-
-    let container_name = &container_names[0];
-    let (first_char, remainder) = split_first_char_remainder(container_name);
-
-    match first_char {
-        "/" => remainder,
-        _ => container_name,
-    }
-}
-
-fn split_first_char_remainder(s: &str) -> (&str, &str) {
-    match s.chars().next() {
-        Some(c) => s.split_at(c.len_utf8()),
-        None => s.split_at(0),
-    }
-}
-
-async fn event_source(event_sender: broadcast::Sender<Event>, client: Docker) -> () {
-    task::spawn(async move {
-        let mut query = HashMap::new();
-        query.insert("type".to_owned(), vec!["container".to_owned()]);
-
-        let filter = Some(EventsOptions::<String> {
-            since: None,
-            until: None,
-            filters: query,
-        });
-
-        let mut stream = client
-            .events(filter)
-            .filter_map(|rslt| match rslt {
-                Ok(rspns) => Some(Event {
-                    availability: Availability::Online,
-                    container_name: resolve_container_name(&rspns.actor),
-                    event: EventType::Status(resolver_container_event(rspns.action)),
-                }),
-                Err(error) => {
-                    error!("could not resolve event from stream: {}", error);
-                    None
-                }
-            })
-            .filter(|evnt| match evnt.event {
-                EventType::Status(ContainerEvent::Undefined) => false,
-                EventType::Status(_) => true,
-                _ => true,
-            });
-
-        while let Some(event) = stream.next().await {
-            match event_sender.send(event) {
-                Ok(_) => {}
-                Err(e) => error!("event could not be send to event_router: {}", e),
-            }
-        }
-    });
-}
-
-fn resolve_container_name(actor: &Option<bollard::models::SystemEventsResponseActor>) -> String {
-    let mut container_name = "".to_owned();
-    if let Some(some_actor) = actor {
-        if let Some(attributes) = &some_actor.attributes {
-            match attributes.get("name") {
-                Some(name) => container_name = name.to_owned(),
-                None => {}
-            }
-        }
-    }
-
-    container_name
-}
-
-fn resolver_container_event(action: Option<String>) -> ContainerEvent {
-    match action.as_deref() {
-        // Some("attach") => ContainerEvent::Attach,
-        // Some("commit") => ContainerEvent::Commit,
-        // Some("copy") => ContainerEvent::Copy,
-        Some("create") => ContainerEvent::Create,
-        Some("destroy") => ContainerEvent::Destroy,
-        // Some("detach") => ContainerEvent::Detach,
-        Some("die") => ContainerEvent::Die,
-        // Some("exec_create") => ContainerEvent::Exec_create,
-        // Some("exec_detach") => ContainerEvent::Exec_detach,
-        // Some("exec_start") => ContainerEvent::Exec_start,
-        // Some("exec_die") => ContainerEvent::Exec_die,
-        // Some("export") => ContainerEvent::Export,
-        // Some("health_status") => ContainerEvent::Health_status,
-        Some("kill") => ContainerEvent::Kill,
-        // Some("oom") => ContainerEvent::Oom,
-        Some("pause") => ContainerEvent::Pause,
-        Some("rename") => ContainerEvent::Rename,
-        // Some("resize") => ContainerEvent::Resize,
-        Some("restart") => ContainerEvent::Restart,
-        Some("start") => ContainerEvent::Start,
-        Some("stop") => ContainerEvent::Stop,
-        // Some("top") => ContainerEvent::Top,
-        Some("unpause") => ContainerEvent::Unpause,
-        // Some("update") => ContainerEvent::Update,
-        Some("prune") => ContainerEvent::Prune,
-        Some(_) => ContainerEvent::Undefined,
-        None => ContainerEvent::Undefined,
-    }
-}
-
-async fn stats_source(
-    mut event_receiver: broadcast::Receiver<Event>,
-    event_sender: broadcast::Sender<Event>,
-    client: Docker,
-) -> () {
-    task::spawn(async move {
-        let mut tasks = HashMap::new();
-        loop {
-            let receive = event_receiver.recv().await;
-            let event: Event;
-            match receive {
-                Ok(evnt) => event = evnt,
-                Err(e) => {
-                    error!("receive failed: {}", e);
-                    continue;
-                }
-            }
-
-            match &event.event {
-                &EventType::Status(ContainerEvent::Start) => {
-                    let client_clone = client.clone();
-                    let sender_clone = event_sender.clone();
-                    let event_clone = event.clone();
-
-                    let task = task::spawn(async move {
-                        let mut stream = client_clone.stats(
-                            &event_clone.container_name,
-                            Some(StatsOptions { stream: true }),
-                        );
-
-                        loop {
-                            match stream.next().await {
-                                Some(Ok(stats)) => {
-                                    let evnt = Event {
-                                        availability: Availability::Online,
-                                        container_name: event_clone.container_name.to_owned(),
-                                        event: EventType::MemoryUsage(calculate_memory_usage(
-                                            &stats,
-                                        )),
-                                    };
-
-                                    match sender_clone.send(evnt) {
-                                        Ok(_) => {}
-                                        Err(e) => {
-                                            error!("message was not sent: {}", e)
-                                        }
-                                    }
-                                }
-                                Some(Err(e)) => {
-                                    error!("failed to receive valid stats: {}", e)
-                                }
-                                None => {}
-                            }
-                        }
-                    });
-
-                    tasks.insert(event.container_name, task);
-                }
-                &EventType::Status(ContainerEvent::Stop) => {
-                    tasks.remove(&event.container_name);
-                }
-                _ => {}
-            }
-        }
-    });
-}
-
-fn calculate_memory_usage(stats: &bollard::container::Stats) -> Option<f64> {
-    let mut used_memory = 0;
-    if let (Some(usage), Some(cached)) = (stats.memory_stats.usage, stats.memory_stats.stats) {
-        used_memory = usage - cached.cache;
-    }
-
-    if let Some(available_memory) = stats.memory_stats.limit {
-        Some((used_memory as f64 / available_memory as f64) * 100.0)
-    } else {
-        None
-    }
 }
 
 async fn event_router(
@@ -294,7 +49,7 @@ pub struct Event {
 #[derive(Clone, Debug)]
 pub enum EventType {
     CpuUsage(Option<f64>),
-    Image,
+    Image(String),
     MemoryUsage(Option<f64>),
     Status(ContainerEvent),
 }
