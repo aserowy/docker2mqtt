@@ -41,7 +41,12 @@ pub async fn source(
                     tasks.insert(event.container_name, task);
                 }
                 &EventType::Status(ContainerEvent::Stop) => {
-                    tasks.remove(&event.container_name);
+                    let task = tasks.remove(&event.container_name);
+
+                    match task {
+                        Some(handle) => handle.abort(),
+                        None => {}
+                    }
                 }
                 _ => {}
             }
@@ -55,14 +60,7 @@ async fn handle_container_start(client: Docker, event: Event, sender: broadcast:
     loop {
         match stream.next().await {
             Some(Ok(stats)) => {
-                for evnt in get_stat_events(event.clone(), stats).into_iter() {
-                    match sender.send(evnt) {
-                        Ok(_) => {}
-                        Err(e) => {
-                            error!("message was not sent: {}", e)
-                        }
-                    }
-                }
+                send_stat_events(&event, &stats, &sender);
             }
             Some(Err(e)) => {
                 error!("failed to receive valid stats: {}", e)
@@ -72,17 +70,28 @@ async fn handle_container_start(client: Docker, event: Event, sender: broadcast:
     }
 }
 
-fn get_stat_events(event: Event, stats: Stats) -> Vec<Event> {
+fn send_stat_events(source: &Event, stats: &Stats, sender: &broadcast::Sender<Event>) {
+    for event in get_stat_events(source, stats).into_iter() {
+        match sender.send(event) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("message was not sent: {}", e)
+            }
+        }
+    }
+}
+
+fn get_stat_events(event: &Event, stats: &Stats) -> Vec<Event> {
     vec![
         Event {
             availability: Availability::Online,
             container_name: event.container_name.to_owned(),
-            event: EventType::CpuUsage(calculate_cpu_usage(&stats)),
+            event: EventType::CpuUsage(calculate_cpu_usage(stats)),
         },
         Event {
             availability: Availability::Online,
             container_name: event.container_name.to_owned(),
-            event: EventType::MemoryUsage(calculate_memory_usage(&stats)),
+            event: EventType::MemoryUsage(calculate_memory_usage(stats)),
         },
     ]
 }
