@@ -1,7 +1,6 @@
-use tokio::task;
-use tokio_stream::StreamExt;
+use tokio::sync::mpsc;
 
-use crate::{configuration::Configuration, docker::DockerClient, mqtt::client::MqttClient};
+use crate::configuration::Configuration;
 
 mod configuration;
 mod docker;
@@ -11,15 +10,10 @@ mod mqtt;
 #[tokio::main]
 async fn main() {
     let _guards = logging::init();
-
     let conf = Configuration::new();
-    let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
 
-    task::spawn(async move {
-        while let Some(sensors) = DockerClient::new().get_event_stream().next().await {
-            mqtt::send_event_messages(&mqtt_client, sensors, &conf).await;
-        }
-    });
+    let (sender, receiver) = mpsc::channel(100);
 
-    mqtt_loop.start_loop().await;
+    docker::spin_up(sender, conf.clone()).await;
+    mqtt::spin_up(receiver, conf).await;
 }

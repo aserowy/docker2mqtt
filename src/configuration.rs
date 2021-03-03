@@ -6,7 +6,7 @@ use std::{
 };
 use tracing::{error, instrument};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     #[serde(default)]
     pub hassio: Option<Hassio>,
@@ -26,7 +26,7 @@ impl Configuration {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Hassio {
     pub discovery: bool,
 
@@ -47,7 +47,7 @@ impl Hassio {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Mqtt {
     pub client_id: String,
     pub host: String,

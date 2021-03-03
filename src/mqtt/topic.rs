@@ -7,12 +7,14 @@ use crate::{
 
 #[instrument(level = "debug")]
 pub fn availability(event: &Event, conf: &Configuration) -> String {
-    let container_name = &event.container_id;
-    let event_name = &event.event_type.to_string();
+    let container_name = &event.container_name;
+    let event_name = &event.event.to_string();
 
-    match &event.event_type {
+    match &event.event {
         &EventType::Image => event_availibility(&conf.mqtt.client_id, container_name, event_name),
-        &EventType::Status => event_availibility(&conf.mqtt.client_id, container_name, event_name),
+        &EventType::Status(_) => {
+            event_availibility(&conf.mqtt.client_id, container_name, event_name)
+        }
 
         &EventType::CpuUsage => device_availability(&conf.mqtt.client_id, container_name),
         &EventType::MemoryUsage => device_availability(&conf.mqtt.client_id, container_name),
@@ -21,8 +23,8 @@ pub fn availability(event: &Event, conf: &Configuration) -> String {
 
 #[instrument(level = "debug")]
 pub fn state(event: &Event, conf: &Configuration) -> String {
-    let container_name = &event.container_id;
-    let event_name = &event.event_type.to_string();
+    let container_name = &event.container_name;
+    let event_name = &event.event.to_string();
 
     format!(
         "{}/{}/state",

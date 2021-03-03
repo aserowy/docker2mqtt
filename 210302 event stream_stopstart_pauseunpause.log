@@ -1,3 +1,5 @@
+create -> destroy
+
 SystemEventsResponse { 
     typ: Some("container"), 
     action: Some("kill"), 

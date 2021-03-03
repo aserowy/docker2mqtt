@@ -94,8 +94,8 @@ fn get_hassio(conf: &Configuration) -> HassioResult<&Hassio> {
 }
 
 fn get_ids(conf: &Configuration, hassio: &Hassio, event: &Event) -> (String, String) {
-    let container_name = &event.container_id;
-    let event_name = event.event_type.to_string();
+    let container_name = &event.container_name;
+    let event_name = event.event.to_string();
 
     let device_name = format!(
         "{}_{}_{}",
