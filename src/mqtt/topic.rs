@@ -16,8 +16,8 @@ pub fn availability(event: &Event, conf: &Configuration) -> String {
             event_availibility(&conf.mqtt.client_id, container_name, event_name)
         }
 
-        &EventType::CpuUsage => device_availability(&conf.mqtt.client_id, container_name),
-        &EventType::MemoryUsage => device_availability(&conf.mqtt.client_id, container_name),
+        &EventType::CpuUsage(_) => device_availability(&conf.mqtt.client_id, container_name),
+        &EventType::MemoryUsage(_) => device_availability(&conf.mqtt.client_id, container_name),
     }
 }
 

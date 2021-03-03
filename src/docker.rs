@@ -1,7 +1,10 @@
 use std::{collections::HashMap, fmt};
 
 use bollard::{
-    container::ListContainersOptions, models::ContainerSummaryInner, system::EventsOptions, Docker,
+    container::{ListContainersOptions, StatsOptions},
+    models::ContainerSummaryInner,
+    system::EventsOptions,
+    Docker,
 };
 use tokio::{
     sync::{broadcast, mpsc},
@@ -10,11 +13,9 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use crate::configuration::Configuration;
-
 mod client;
 
-pub async fn spin_up(sender: mpsc::Sender<Event>, conf: Configuration) {
+pub async fn spin_up(sender: mpsc::Sender<Event>) {
     let docker_client = client::new();
     let (event_sender, event_receiver_router) = broadcast::channel(500);
     let event_receiver_stats = event_sender.subscribe();
@@ -22,13 +23,7 @@ pub async fn spin_up(sender: mpsc::Sender<Event>, conf: Configuration) {
     initial_event_source(event_sender.clone(), docker_client.clone()).await;
     event_source(event_sender.clone(), docker_client.clone()).await;
 
-    stats_source(
-        event_receiver_stats,
-        event_sender,
-        docker_client.clone(),
-        &conf,
-    )
-    .await;
+    stats_source(event_receiver_stats, event_sender, docker_client.clone()).await;
 
     event_router(event_receiver_router, sender).await;
 }
@@ -49,18 +44,42 @@ async fn initial_event_source(event_sender: broadcast::Sender<Event>, client: Do
         };
 
         for container in containers {
-            let event = Event {
-                availability: Availability::Online,
-                container_name: get_container_name(&container).to_owned(),
-                event: EventType::Status(ContainerEvent::Create),
-            };
+            let events = vec![
+                Event {
+                    availability: Availability::Online,
+                    container_name: get_container_name(&container).to_owned(),
+                    event: EventType::Status(ContainerEvent::Create),
+                },
+                Event {
+                    availability: Availability::Online,
+                    container_name: get_container_name(&container).to_owned(),
+                    event: EventType::Status(get_container_status(&container)),
+                },
+            ];
 
-            match event_sender.send(event) {
-                Ok(_) => {}
-                Err(e) => error!("event could not be send to event_router: {}", e),
+            for event in events.into_iter() {
+                // TODO refactor into function with retry and warning on count > 1
+                match event_sender.send(event) {
+                    Ok(_) => {}
+                    Err(e) => error!("event could not be send to event_router: {}", e),
+                }
             }
         }
     });
+}
+
+fn get_container_status(container: &ContainerSummaryInner) -> ContainerEvent {
+    match container.status.as_deref() {
+        Some("created") => ContainerEvent::Create,
+        Some("restarting") => ContainerEvent::Restart,
+        Some("running") => ContainerEvent::Start,
+        Some("removing") => ContainerEvent::Stop,
+        Some("paused") => ContainerEvent::Pause,
+        Some("exited") => ContainerEvent::Stop,
+        Some("dead") => ContainerEvent::Die,
+        Some(_) => ContainerEvent::Undefined,
+        None => ContainerEvent::Undefined,
+    }
 }
 
 fn get_container_name(container: &ContainerSummaryInner) -> &str {
@@ -171,11 +190,83 @@ fn resolver_container_event(action: Option<String>) -> ContainerEvent {
 }
 
 async fn stats_source(
-    event_receiver: broadcast::Receiver<Event>,
+    mut event_receiver: broadcast::Receiver<Event>,
     event_sender: broadcast::Sender<Event>,
     client: Docker,
-    conf: &Configuration,
 ) -> () {
+    task::spawn(async move {
+        let mut tasks = HashMap::new();
+        loop {
+            let receive = event_receiver.recv().await;
+            let event: Event;
+            match receive {
+                Ok(evnt) => event = evnt,
+                Err(e) => {
+                    error!("receive failed: {}", e);
+                    continue;
+                }
+            }
+
+            match &event.event {
+                &EventType::Status(ContainerEvent::Start) => {
+                    let client_clone = client.clone();
+                    let sender_clone = event_sender.clone();
+                    let event_clone = event.clone();
+
+                    let task = task::spawn(async move {
+                        let mut stream = client_clone.stats(
+                            &event_clone.container_name,
+                            Some(StatsOptions { stream: true }),
+                        );
+
+                        loop {
+                            match stream.next().await {
+                                Some(Ok(stats)) => {
+                                    let evnt = Event {
+                                        availability: Availability::Online,
+                                        container_name: event_clone.container_name.to_owned(),
+                                        event: EventType::MemoryUsage(calculate_memory_usage(
+                                            &stats,
+                                        )),
+                                    };
+
+                                    match sender_clone.send(evnt) {
+                                        Ok(_) => {}
+                                        Err(e) => {
+                                            error!("message was not sent: {}", e)
+                                        }
+                                    }
+                                }
+                                Some(Err(e)) => {
+                                    error!("failed to receive valid stats: {}", e)
+                                }
+                                None => {}
+                            }
+                        }
+                    });
+
+                    tasks.insert(event.container_name, task);
+                }
+                &EventType::Status(ContainerEvent::Stop) => {
+                    tasks.remove(&event.container_name);
+                }
+                _ => {}
+            }
+        }
+    });
+}
+
+fn calculate_memory_usage(stats: &bollard::container::Stats) -> Option<f64> {
+    let mut used_memory = 0;
+    if let (Some(usage), Some(cached)) = (stats.memory_stats.usage, stats.memory_stats.stats) {
+        used_memory = usage - cached.cache;
+    }
+
+    if let Some(available_memory) = stats.memory_stats.limit {
+        Some((used_memory as f64 / available_memory as f64) * 100.0)
+    } else {
+        None
+    }
 }
 
 async fn event_router(
@@ -202,9 +293,9 @@ pub struct Event {
 
 #[derive(Clone, Debug)]
 pub enum EventType {
-    CpuUsage,
+    CpuUsage(Option<f64>),
     Image,
-    MemoryUsage,
+    MemoryUsage(Option<f64>),
     Status(ContainerEvent),
 }
 
