@@ -1,17 +1,14 @@
 use tracing::instrument;
 
-use crate::{configuration::Configuration, docker::Event};
+use crate::configuration::Configuration;
 
 #[instrument(level = "debug")]
-pub fn availability(event: &Event, conf: &Configuration) -> String {
-    device_availability(&conf.mqtt.client_id, &event.container_name)
+pub fn availability(container_name: &str, conf: &Configuration) -> String {
+    device_availability(&conf.mqtt.client_id, container_name)
 }
 
 #[instrument(level = "debug")]
-pub fn state(event: &Event, conf: &Configuration) -> String {
-    let container_name = &event.container_name;
-    let event_name = &event.event.to_string();
-
+pub fn state(container_name: &str, event_name: &str, conf: &Configuration) -> String {
     format!(
         "{}/{}/state",
         base(&conf.mqtt.client_id, container_name),
@@ -19,10 +16,10 @@ pub fn state(event: &Event, conf: &Configuration) -> String {
     )
 }
 
-fn device_availability(client_id: &str, container: &str) -> String {
-    format!("{}/lwt", base(client_id, container))
+fn device_availability(client_id: &str, container_name: &str) -> String {
+    format!("{}/lwt", base(client_id, container_name))
 }
 
-fn base(client_id: &str, container: &str) -> String {
-    format!("docker2mqtt/{}/{}", client_id, container)
+fn base(client_id: &str, container_name: &str) -> String {
+    format!("docker2mqtt/{}/{}", client_id, container_name)
 }
