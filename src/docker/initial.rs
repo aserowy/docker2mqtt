@@ -25,11 +25,11 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
             let mut events = vec![
                 Event {
                     container_name: container_name.to_owned(),
-                    event: EventType::Status(ContainerEvent::Create),
+                    event: EventType::State(ContainerEvent::Create),
                 },
                 Event {
                     container_name: container_name.to_owned(),
-                    event: EventType::Status(get_container_status(&container)),
+                    event: EventType::State(get_state(&container)),
                 },
             ];
 
@@ -41,7 +41,7 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
             }
 
             for event in events.into_iter() {
-                if let &EventType::Status(ContainerEvent::Undefined) = &event.event {
+                if let &EventType::State(ContainerEvent::Undefined) = &event.event {
                     continue;
                 }
 
@@ -55,8 +55,8 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
     });
 }
 
-fn get_container_status(container: &ContainerSummaryInner) -> ContainerEvent {
-    match container.status.as_deref() {
+fn get_state(container: &ContainerSummaryInner) -> ContainerEvent {
+    match container.state.as_deref() {
         Some("created") => ContainerEvent::Create,
         Some("restarting") => ContainerEvent::Restart,
         Some("running") => ContainerEvent::Start,

@@ -1,5 +1,3 @@
-use tracing::debug;
-
 use crate::{
     configuration::Configuration,
     docker::{ContainerEvent, Event, EventType},
@@ -20,18 +18,21 @@ pub struct Message {
 pub fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
     let mut messages = vec![];
 
-    if let EventType::Status(ContainerEvent::Create) = &event.event {
+    if let EventType::State(ContainerEvent::Create) = &event.event {
         for message in get_discovery_messages(&event, conf) {
             messages.push(message)
         }
     }
 
-    if let EventType::Status(container_event) = &event.event {
+    if let EventType::State(container_event) = &event.event {
         messages.push(Message {
             topic: topic::availability(&event.container_name, conf),
             payload: availability::get_availability(container_event).to_string(),
         });
     }
+
+    // TODO availability for sensors only between start->stop
+    // TODO clean up on destroy
 
     messages.push(Message {
         topic: topic::state(&event.container_name, &event.event.to_string(), conf),
@@ -46,7 +47,7 @@ fn get_discovery_messages(event: &Event, conf: &Configuration) -> Vec<Message> {
         EventType::CpuUsage(0.0),
         EventType::Image("".to_owned()),
         EventType::MemoryUsage(0.0),
-        EventType::Status(ContainerEvent::Create),
+        EventType::State(ContainerEvent::Create),
     ];
 
     let container_name = &event.container_name;

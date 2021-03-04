@@ -49,7 +49,7 @@ pub enum EventType {
     CpuUsage(f64),
     Image(String),
     MemoryUsage(f64),
-    Status(ContainerEvent),
+    State(ContainerEvent),
 }
 
 impl fmt::Display for EventType {
@@ -58,10 +58,10 @@ impl fmt::Display for EventType {
             EventType::CpuUsage(_) => "cpu_usage",
             EventType::Image(_) => "image",
             EventType::MemoryUsage(_) => "memory_usage",
-            EventType::Status(_) => "status",
+            EventType::State(_) => "state",
         };
 
-        write!(formatter, "{:?}", value)
+        write!(formatter, "{}", value)
     }
 }
 

@@ -50,8 +50,8 @@ fn get_events(result: Result<SystemEventsResponse, Error>) -> Option<Vec<Event>>
     let mut messages = vec![];
 
     match &state_event.event {
-        &EventType::Status(ContainerEvent::Undefined) => return None,
-        &EventType::Status(ContainerEvent::Create) => messages.push(get_image_event(&response)),
+        &EventType::State(ContainerEvent::Undefined) => return None,
+        &EventType::State(ContainerEvent::Create) => messages.push(get_image_event(&response)),
         _ => {}
     }
 
@@ -65,7 +65,7 @@ fn get_state_event(response: &SystemEventsResponse) -> Event {
 
     Event {
         container_name: get_attribute(&response.actor, "name"),
-        event: EventType::Status(container_event),
+        event: EventType::State(container_event),
     }
 }
 

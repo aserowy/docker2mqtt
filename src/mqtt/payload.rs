@@ -5,7 +5,7 @@ pub fn get(event: &Event) -> String {
         EventType::CpuUsage(usage) => format!("{:.2}", usage),
         EventType::Image(image) => image.to_owned(),
         EventType::MemoryUsage(usage) => format!("{:.2}", usage),
-        EventType::Status(event) => get_status_payload(event).to_owned(),
+        EventType::State(event) => get_status_payload(event).to_owned(),
     }
 }
 

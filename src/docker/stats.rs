@@ -29,18 +29,18 @@ pub async fn source(
             }
 
             match &event.event {
-                &EventType::Status(ContainerEvent::Start) => {
+                &EventType::State(ContainerEvent::Start) => {
                     let client_clone = client.clone();
                     let event_sender_clone = event_sender.clone();
                     let event_clone = event.clone();
 
                     let task = task::spawn(async move {
-                        handle_container_start(client_clone, event_clone, event_sender_clone)
+                        handle_container_start(client_clone, event_clone, event_sender_clone).await;
                     });
 
                     tasks.insert(event.container_name, task);
                 }
-                &EventType::Status(ContainerEvent::Stop) => {
+                &EventType::State(ContainerEvent::Stop) => {
                     let task = tasks.remove(&event.container_name);
 
                     match task {

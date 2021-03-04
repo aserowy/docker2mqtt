@@ -35,9 +35,7 @@ pub fn create(
 ) -> String {
     let device_name = get_device_name(conf, hassio, container_name);
     let unique_id = get_unique_id(conf, hassio, container_name, event_name);
-
-    let mut identifiers = Vec::new();
-    identifiers.push(device_name.to_string());
+    let identifiers = vec![device_name.to_string()];
 
     let event = HassioEvent {
         availability_topic: topic::availability(container_name, conf),
