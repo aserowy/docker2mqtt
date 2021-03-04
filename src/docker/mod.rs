@@ -18,7 +18,6 @@ pub async fn spin_up(sender: mpsc::Sender<Event>) {
 
     initial::source(event_sender.clone(), docker_client.clone()).await;
     events::source(event_sender.clone(), docker_client.clone()).await;
-
     stats::source(event_receiver_stats, event_sender, docker_client.clone()).await;
 
     event_router(event_receiver_router, sender).await;
@@ -48,15 +47,22 @@ pub struct Event {
 
 #[derive(Clone, Debug)]
 pub enum EventType {
-    CpuUsage(Option<f64>),
+    CpuUsage(f64),
     Image(String),
-    MemoryUsage(Option<f64>),
+    MemoryUsage(f64),
     Status(ContainerEvent),
 }
 
 impl fmt::Display for EventType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let value = match self {
+            EventType::CpuUsage(_) => "cpu_usage",
+            EventType::Image(_) => "image",
+            EventType::MemoryUsage(_) => "memory_usage",
+            EventType::Status(_) => "status",
+        };
+
+        write!(formatter, "{:?}", value)
     }
 }
 

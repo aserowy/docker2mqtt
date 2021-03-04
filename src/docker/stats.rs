@@ -96,15 +96,13 @@ fn get_stat_events(event: &Event, stats: &Stats) -> Vec<Event> {
     ]
 }
 
-fn calculate_cpu_usage(stats: &Stats) -> Option<f64> {
+fn calculate_cpu_usage(stats: &Stats) -> f64 {
     if let Some(system_cpu_delta) = calculate_system_cpu_delta(stats) {
-        Some(
-            (calculate_cpu_delta(stats) as f64 / system_cpu_delta as f64)
-                * number_cpus(stats) as f64
-                * 100.0,
-        )
+        (calculate_cpu_delta(stats) as f64 / system_cpu_delta as f64)
+            * number_cpus(stats) as f64
+            * 100.0
     } else {
-        None
+        0.0
     }
 }
 
@@ -139,15 +137,15 @@ fn number_cpus(stats: &Stats) -> u64 {
     }
 }
 
-fn calculate_memory_usage(stats: &Stats) -> Option<f64> {
+fn calculate_memory_usage(stats: &Stats) -> f64 {
     let mut used_memory = 0;
     if let (Some(usage), Some(cached)) = (stats.memory_stats.usage, stats.memory_stats.stats) {
         used_memory = usage - cached.cache;
     }
 
     if let Some(available_memory) = stats.memory_stats.limit {
-        Some((used_memory as f64 / available_memory as f64) * 100.0)
+        (used_memory as f64 / available_memory as f64) * 100.0
     } else {
-        None
+        0.0
     }
 }

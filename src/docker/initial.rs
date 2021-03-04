@@ -20,20 +20,34 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
         };
 
         for container in containers {
-            let events = vec![
+            let container_name = get_container_name(&container).to_owned();
+
+            let mut events = vec![
                 Event {
                     availability: Availability::Online,
-                    container_name: get_container_name(&container).to_owned(),
+                    container_name: container_name.to_owned(),
                     event: EventType::Status(ContainerEvent::Create),
                 },
                 Event {
                     availability: Availability::Online,
-                    container_name: get_container_name(&container).to_owned(),
+                    container_name: container_name.to_owned(),
                     event: EventType::Status(get_container_status(&container)),
                 },
             ];
 
+            if let Some(image) = &container.image {
+                events.push(Event {
+                    availability: Availability::Online,
+                    container_name: container_name.to_owned(),
+                    event: EventType::Image(image.to_owned()),
+                });
+            }
+
             for event in events.into_iter() {
+                if let &EventType::Status(ContainerEvent::Undefined) = &event.event {
+                    continue;
+                }
+
                 // TODO refactor into function with retry and warning on count > 1
                 match event_sender.send(event) {
                     Ok(_) => {}

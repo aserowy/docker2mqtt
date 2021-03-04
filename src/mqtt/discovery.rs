@@ -25,7 +25,7 @@ pub fn topic(event: &Event, conf: &Configuration) -> HassioResult<String> {
     let (_, unique_id) = get_ids(conf, hassio, event);
 
     Ok(format!(
-        "{}/event/docker2mqtt/{}/config",
+        "{}/sensor/docker2mqtt/{}/config",
         hassio.discovery_prefix, unique_id
     ))
 }
