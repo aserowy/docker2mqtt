@@ -15,7 +15,7 @@ fn get_status_payload(event: &ContainerEvent) -> &str {
         ContainerEvent::Create => "created",
         ContainerEvent::Destroy => "removing",
         ContainerEvent::Die => "dead",
-        ContainerEvent::Kill => "removing",
+        ContainerEvent::Kill => "exited",
         ContainerEvent::Pause => "paused",
         ContainerEvent::Rename => "running",
         ContainerEvent::Restart => "restarting",

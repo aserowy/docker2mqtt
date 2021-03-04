@@ -41,12 +41,10 @@ pub async fn source(
                     tasks.insert(event.container_name, task);
                 }
                 &EventType::State(ContainerEvent::Stop) => {
-                    let task = tasks.remove(&event.container_name);
-
-                    match task {
-                        Some(handle) => handle.abort(),
-                        None => {}
-                    }
+                    handle_container_stop(&mut tasks, &event);
+                }
+                &EventType::State(ContainerEvent::Die) => {
+                    handle_container_stop(&mut tasks, &event);
                 }
                 _ => {}
             }
@@ -63,6 +61,13 @@ async fn handle_container_start(client: Docker, event: Event, sender: broadcast:
             Some(Err(e)) => error!("failed to receive valid stats: {}", e),
             None => {}
         }
+    }
+}
+
+fn handle_container_stop(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &Event) {
+    match tasks.remove(&event.container_name) {
+        Some(handle) => handle.abort(),
+        None => {}
     }
 }
 

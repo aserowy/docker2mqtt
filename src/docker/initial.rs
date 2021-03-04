@@ -60,7 +60,7 @@ fn get_state(container: &ContainerSummaryInner) -> ContainerEvent {
         Some("created") => ContainerEvent::Create,
         Some("restarting") => ContainerEvent::Restart,
         Some("running") => ContainerEvent::Start,
-        Some("removing") => ContainerEvent::Stop,
+        Some("removing") => ContainerEvent::Prune,
         Some("paused") => ContainerEvent::Pause,
         Some("exited") => ContainerEvent::Stop,
         Some("dead") => ContainerEvent::Die,
