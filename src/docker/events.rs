@@ -10,7 +10,7 @@ use tokio::{sync::broadcast, task};
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use super::{Availability, ContainerEvent, Event, EventType};
+use super::{ContainerEvent, Event, EventType};
 
 pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> () {
     task::spawn(async move {
@@ -64,32 +64,13 @@ fn get_state_event(response: &SystemEventsResponse) -> Event {
     let container_event = get_container_event(&response.action);
 
     Event {
-        availability: get_availability(&container_event),
         container_name: get_attribute(&response.actor, "name"),
         event: EventType::Status(container_event),
     }
 }
 
-fn get_availability(container_event: &ContainerEvent) -> Availability {
-    match container_event {
-        ContainerEvent::Undefined => Availability::Offline,
-        ContainerEvent::Create => Availability::Online,
-        ContainerEvent::Destroy => Availability::Offline,
-        ContainerEvent::Die => Availability::Online,
-        ContainerEvent::Kill => Availability::Online,
-        ContainerEvent::Pause => Availability::Online,
-        ContainerEvent::Rename => Availability::Online,
-        ContainerEvent::Restart => Availability::Online,
-        ContainerEvent::Start => Availability::Online,
-        ContainerEvent::Stop => Availability::Online,
-        ContainerEvent::Unpause => Availability::Online,
-        ContainerEvent::Prune => Availability::Offline,
-    }
-}
-
 fn get_image_event(response: &SystemEventsResponse) -> Event {
     Event {
-        availability: Availability::Online,
         container_name: get_attribute(&response.actor, "name"),
         event: EventType::Image(get_attribute(&response.actor, "image")),
     }

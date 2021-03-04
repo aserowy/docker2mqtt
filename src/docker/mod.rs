@@ -40,7 +40,6 @@ async fn event_router(
 
 #[derive(Clone, Debug)]
 pub struct Event {
-    pub availability: Availability,
     pub container_name: String,
     pub event: EventType,
 }
@@ -95,16 +94,4 @@ pub enum ContainerEvent {
     Unpause,
     // Update,
     Prune,
-}
-
-#[derive(Clone, Debug)]
-pub enum Availability {
-    Online,
-    Offline,
-}
-
-impl fmt::Display for Availability {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self)
-    }
 }

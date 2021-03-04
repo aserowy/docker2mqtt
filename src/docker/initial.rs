@@ -2,7 +2,7 @@ use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, D
 use tokio::{sync::broadcast, task};
 use tracing::error;
 
-use super::{Availability, ContainerEvent, Event, EventType};
+use super::{ContainerEvent, Event, EventType};
 
 pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> () {
     task::spawn(async move {
@@ -24,12 +24,10 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
 
             let mut events = vec![
                 Event {
-                    availability: Availability::Online,
                     container_name: container_name.to_owned(),
                     event: EventType::Status(ContainerEvent::Create),
                 },
                 Event {
-                    availability: Availability::Online,
                     container_name: container_name.to_owned(),
                     event: EventType::Status(get_container_status(&container)),
                 },
@@ -37,7 +35,6 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
 
             if let Some(image) = &container.image {
                 events.push(Event {
-                    availability: Availability::Online,
                     container_name: container_name.to_owned(),
                     event: EventType::Image(image.to_owned()),
                 });

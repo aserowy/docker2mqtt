@@ -8,7 +8,7 @@ use tokio::{sync::broadcast, task};
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use super::{Availability, ContainerEvent, Event, EventType};
+use super::{ContainerEvent, Event, EventType};
 
 pub async fn source(
     mut event_receiver: broadcast::Receiver<Event>,
@@ -59,12 +59,8 @@ async fn handle_container_start(client: Docker, event: Event, sender: broadcast:
 
     loop {
         match stream.next().await {
-            Some(Ok(stats)) => {
-                send_stat_events(&event, &stats, &sender);
-            }
-            Some(Err(e)) => {
-                error!("failed to receive valid stats: {}", e)
-            }
+            Some(Ok(stats)) => send_stat_events(&event, &stats, &sender),
+            Some(Err(e)) => error!("failed to receive valid stats: {}", e),
             None => {}
         }
     }
@@ -84,12 +80,10 @@ fn send_stat_events(source: &Event, stats: &Stats, sender: &broadcast::Sender<Ev
 fn get_stat_events(event: &Event, stats: &Stats) -> Vec<Event> {
     vec![
         Event {
-            availability: Availability::Online,
             container_name: event.container_name.to_owned(),
             event: EventType::CpuUsage(calculate_cpu_usage(stats)),
         },
         Event {
-            availability: Availability::Online,
             container_name: event.container_name.to_owned(),
             event: EventType::MemoryUsage(calculate_memory_usage(stats)),
         },

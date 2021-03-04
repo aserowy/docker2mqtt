@@ -3,10 +3,10 @@ use tracing::instrument;
 
 use crate::{
     configuration::{Configuration, Hassio},
-    docker::{Availability, Event},
+    docker::Event,
 };
 
-use super::topic;
+use super::{availability::Availability, topic};
 
 pub type HassioResult<T> = Result<T, HassioErr>;
 
