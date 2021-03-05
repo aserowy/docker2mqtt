@@ -8,7 +8,9 @@ use tracing_subscriber::{
     fmt::Layer, prelude::__tracing_subscriber_SubscriberExt, EnvFilter, Registry,
 };
 
-pub fn init() -> Vec<WorkerGuard> {
+use crate::configuration::Configuration;
+
+pub fn init(conf: &Configuration) -> Vec<WorkerGuard> {
     LogTracer::init().expect("Unable to setup log tracer!");
 
     let mut guards = vec![];
@@ -25,7 +27,7 @@ pub fn init() -> Vec<WorkerGuard> {
     guards.push(file_guard);
 
     let subscriber = Registry::default()
-        .with(EnvFilter::new("DEBUG"))
+        .with(EnvFilter::new(&conf.logging.level))
         .with(stdout_logging_layer)
         .with(JsonStorageLayer)
         .with(file_logging_layer);
