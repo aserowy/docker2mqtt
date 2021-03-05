@@ -25,7 +25,7 @@ pub fn init() -> Vec<WorkerGuard> {
     guards.push(file_guard);
 
     let subscriber = Registry::default()
-        .with(EnvFilter::new("INFO"))
+        .with(EnvFilter::new("DEBUG"))
         .with(stdout_logging_layer)
         .with(JsonStorageLayer)
         .with(file_logging_layer);

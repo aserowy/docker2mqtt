@@ -1,75 +1,121 @@
-use bollard::{container::StatsOptions, models::ContainerSummaryInner, Docker};
-use futures_util::StreamExt;
-use tracing::instrument;
+use std::collections::HashMap;
 
-#[instrument(level = "debug")]
-pub async fn get_stats(client: &Docker, container: &ContainerSummaryInner) -> Stats {
-    let container_id = match &container.id {
-        Some(id) => id,
-        None => return Stats::default(),
-    };
+use bollard::{
+    container::{Stats, StatsOptions},
+    Docker,
+};
+use tokio::{
+    sync::broadcast,
+    task::{self, JoinHandle},
+};
+use tokio_stream::StreamExt;
+use tracing::error;
 
-    let stream = &mut client
-        .stats(container_id, Some(StatsOptions { stream: false }))
-        .take(1);
+use super::{ContainerEvent, Event, EventType};
 
-    let mut result = Stats::default();
-    if let Some(Ok(stats)) = stream.next().await {
-        result = Stats::new(stats);
-    }
+pub async fn source(
+    mut event_receiver: broadcast::Receiver<Event>,
+    event_sender: broadcast::Sender<Event>,
+    client: Docker,
+) -> () {
+    task::spawn(async move {
+        let mut tasks = HashMap::new();
+        loop {
+            let receive = event_receiver.recv().await;
+            let event: Event;
+            match receive {
+                Ok(evnt) => event = evnt,
+                Err(e) => {
+                    error!("receive failed: {}", e);
+                    continue;
+                }
+            }
 
-    result
+            match &event.event {
+                &EventType::State(ContainerEvent::Start) => {
+                    tasks.insert(
+                        event.container_name,
+                        start_stats_stream(client.clone(), event.clone(), event_sender.clone())
+                            .await,
+                    );
+                }
+                &EventType::State(ContainerEvent::Stop) => {
+                    stop_stats_stream(&mut tasks, &event);
+                }
+                &EventType::State(ContainerEvent::Die) => {
+                    stop_stats_stream(&mut tasks, &event);
+                }
+                _ => {}
+            }
+        }
+    });
 }
 
-#[derive(Debug)]
-pub struct Stats {
-    pub cpu_usage: f64,
-    pub memory_usage: f64,
+async fn start_stats_stream(
+    client: Docker,
+    event: Event,
+    sender: broadcast::Sender<Event>,
+) -> JoinHandle<()> {
+    task::spawn(async move {
+        let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
+
+        loop {
+            match stream.next().await {
+                Some(Ok(stats)) => send_stat_events(&event, &stats, &sender),
+                Some(Err(e)) => error!("failed to receive valid stats: {}", e),
+                None => {}
+            }
+        }
+    })
 }
 
-impl Stats {
-    pub fn new(stats: bollard::container::Stats) -> Stats {
-        let mut cpu_usage = 0.0;
-        if let Some(usage) = calculate_cpu_usage(&stats) {
-            cpu_usage = usage;
-        }
-
-        let mut memory_usage = 0.0;
-        if let Some(usage) = calculate_memory_usage(&stats) {
-            memory_usage = usage;
-        }
-
-        Stats {
-            cpu_usage,
-            memory_usage,
-        }
-    }
-
-    pub fn default() -> Stats {
-        Stats {
-            cpu_usage: 0.0,
-            memory_usage: 0.0,
-        }
+fn stop_stats_stream(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &Event) {
+    match tasks.remove(&event.container_name) {
+        Some(handle) => handle.abort(),
+        None => {}
     }
 }
 
-fn calculate_cpu_usage(stats: &bollard::container::Stats) -> Option<f64> {
+fn send_stat_events(source: &Event, stats: &Stats, sender: &broadcast::Sender<Event>) {
+    // TODO throttle stats with config
+    for event in get_stat_events(source, stats).into_iter() {
+        match sender.send(event) {
+            Ok(_) => {}
+            Err(e) => {
+                error!("message was not sent: {}", e)
+            }
+        }
+    }
+}
+
+fn get_stat_events(event: &Event, stats: &Stats) -> Vec<Event> {
+    vec![
+        Event {
+            container_name: event.container_name.to_owned(),
+            event: EventType::CpuUsage(calculate_cpu_usage(stats)),
+        },
+        Event {
+            container_name: event.container_name.to_owned(),
+            event: EventType::MemoryUsage(calculate_memory_usage(stats)),
+        },
+    ]
+}
+
+fn calculate_cpu_usage(stats: &Stats) -> f64 {
     if let Some(system_cpu_delta) = calculate_system_cpu_delta(stats) {
-        Some(
-            (calculate_cpu_delta(stats) as f64 / system_cpu_delta as f64)
-                * number_cpus(stats) as f64
-                * 100.0,
-        )
+        (calculate_cpu_delta(stats) as f64 / system_cpu_delta as f64)
+            * number_cpus(stats) as f64
+            * 100.0
     } else {
-        None
+        0.0
     }
 }
 
-fn calculate_cpu_delta(stats: &bollard::container::Stats) -> u64 {
+fn calculate_cpu_delta(stats: &Stats) -> u64 {
     stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage
 }
 
-fn calculate_system_cpu_delta(stats: &bollard::container::Stats) -> Option<u64> {
+fn calculate_system_cpu_delta(stats: &Stats) -> Option<u64> {
     if let (Some(cpu), Some(pre)) = (
         stats.cpu_stats.system_cpu_usage,
         stats.precpu_stats.system_cpu_usage,
@@ -80,7 +126,7 @@ fn calculate_system_cpu_delta(stats: &bollard::container::Stats) -> Option<u64> 
     }
 }
 
-fn number_cpus(stats: &bollard::container::Stats) -> u64 {
+fn number_cpus(stats: &Stats) -> u64 {
     if let Some(cpus) = stats.cpu_stats.online_cpus {
         cpus
     } else {
@@ -96,15 +142,15 @@ fn number_cpus(stats: &bollard::container::Stats) -> u64 {
     }
 }
 
-fn calculate_memory_usage(stats: &bollard::container::Stats) -> Option<f64> {
+fn calculate_memory_usage(stats: &Stats) -> f64 {
     let mut used_memory = 0;
     if let (Some(usage), Some(cached)) = (stats.memory_stats.usage, stats.memory_stats.stats) {
         used_memory = usage - cached.cache;
     }
 
     if let Some(available_memory) = stats.memory_stats.limit {
-        Some((used_memory as f64 / available_memory as f64) * 100.0)
+        (used_memory as f64 / available_memory as f64) * 100.0
     } else {
-        None
+        0.0
     }
 }
