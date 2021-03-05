@@ -6,6 +6,6 @@ RUN mkdir -p /docker2mqtt/logs
 
 VOLUME ["/docker2mqtt/logs", "/docker2mqtt/config"]
 
-COPY /target/armv7-unknown-linux-gnueabihf/release/docker2mqtt /docker2mqtt/
+COPY /target/armv7-unknown-linux-musleabihf/release/docker2mqtt /docker2mqtt/
 
 ENTRYPOINT ["/docker2mqtt/docker2mqtt"]

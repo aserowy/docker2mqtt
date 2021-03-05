@@ -22,7 +22,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: armv7-unknown-linux-gnueabihf
+          target: armv7-unknown-linux-musleabihf
           override: true
 
       - name: cargo_dependency_cache
@@ -39,7 +39,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --target armv7-unknown-linux-gnueabihf --release
+          args: --target armv7-unknown-linux-musleabihf --release
 
       - name: docker_login
         run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
