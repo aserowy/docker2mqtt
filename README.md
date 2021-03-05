@@ -26,8 +26,7 @@ services:
 In the directory `~/docker2mqtt/config` the configuration of the service is then done by `configuration.yaml`. Commented values are optional and are filled by corresponding defaults:
 
 ```yaml
-# hassio is optional
-hassio:
+# hassio:
   # discovery enables (true) or disables (false) discovery messages for home assistant
   discovery: true
 
@@ -36,6 +35,10 @@ hassio:
 
   # device_prefix is used to prefix all created devices (container) in home assistant [default: docker]
   # device_prefix:
+
+# logging:
+  # sets the logging level (TRACE, DEBUG, INFO, WARN, and ERROR) at start up [default: INFO]
+  # level:
 
 mqtt:
   # client_id is the id to unquily identify the sender

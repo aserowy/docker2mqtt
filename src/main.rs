@@ -9,8 +9,8 @@ mod mqtt;
 
 #[tokio::main]
 async fn main() {
-    let _guards = logging::init();
     let conf = Configuration::new();
+    let _guards = logging::init(&conf);
 
     let (sender, receiver) = mpsc::channel(100);
 

@@ -1,15 +1,18 @@
-use core::panic;
-use serde::Deserialize;
 use std::{
     fs::File,
-    io::{self, Read},
+    io::{self, Error, Read},
 };
-use tracing::{error, instrument};
+
+use serde::Deserialize;
+use tracing::instrument;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     #[serde(default)]
     pub hassio: Option<Hassio>,
+
+    #[serde(default)]
+    pub logging: Logging,
 
     pub mqtt: Mqtt,
 }
@@ -44,6 +47,26 @@ impl Hassio {
 
     fn default_device_prefix() -> String {
         "docker".to_owned()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Logging {
+    #[serde(default = "Logging::default_level")]
+    pub level: String,
+}
+
+impl Default for Logging {
+    fn default() -> Self {
+        Logging {
+            level: Logging::default_level(),
+        }
+    }
+}
+
+impl Logging {
+    fn default_level() -> String {
+        "INFO".to_owned()
     }
 }
 
@@ -84,17 +107,17 @@ impl Mqtt {
 }
 
 fn read_file(path: &str, filename_variants: Vec<&str>) -> String {
+    let mut error: Option<Error> = None;
     for variant in filename_variants {
         let file = format!("{}{}", path, variant);
 
         match read_single_file(file) {
             Ok(value) => return value,
-            Err(_) => continue,
+            Err(e) => error = Some(e),
         }
     }
 
-    error!("Configuration file missing.");
-    panic!();
+    panic!("Configuration file missing: {:?}", error);
 }
 
 fn read_single_file(file: String) -> io::Result<String> {
