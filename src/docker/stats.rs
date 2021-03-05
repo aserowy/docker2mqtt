@@ -4,7 +4,10 @@ use bollard::{
     container::{Stats, StatsOptions},
     Docker,
 };
-use tokio::{sync::broadcast, task};
+use tokio::{
+    sync::broadcast,
+    task::{self, JoinHandle},
+};
 use tokio_stream::StreamExt;
 use tracing::error;
 
@@ -30,21 +33,17 @@ pub async fn source(
 
             match &event.event {
                 &EventType::State(ContainerEvent::Start) => {
-                    let client_clone = client.clone();
-                    let event_sender_clone = event_sender.clone();
-                    let event_clone = event.clone();
-
-                    let task = task::spawn(async move {
-                        handle_container_start(client_clone, event_clone, event_sender_clone).await;
-                    });
-
-                    tasks.insert(event.container_name, task);
+                    tasks.insert(
+                        event.container_name,
+                        start_stats_stream(client.clone(), event.clone(), event_sender.clone())
+                            .await,
+                    );
                 }
                 &EventType::State(ContainerEvent::Stop) => {
-                    handle_container_stop(&mut tasks, &event);
+                    stop_stats_stream(&mut tasks, &event);
                 }
                 &EventType::State(ContainerEvent::Die) => {
-                    handle_container_stop(&mut tasks, &event);
+                    stop_stats_stream(&mut tasks, &event);
                 }
                 _ => {}
             }
@@ -52,19 +51,25 @@ pub async fn source(
     });
 }
 
-async fn handle_container_start(client: Docker, event: Event, sender: broadcast::Sender<Event>) {
-    let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
+async fn start_stats_stream(
+    client: Docker,
+    event: Event,
+    sender: broadcast::Sender<Event>,
+) -> JoinHandle<()> {
+    task::spawn(async move {
+        let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
 
-    loop {
-        match stream.next().await {
-            Some(Ok(stats)) => send_stat_events(&event, &stats, &sender),
-            Some(Err(e)) => error!("failed to receive valid stats: {}", e),
-            None => {}
+        loop {
+            match stream.next().await {
+                Some(Ok(stats)) => send_stat_events(&event, &stats, &sender),
+                Some(Err(e)) => error!("failed to receive valid stats: {}", e),
+                None => {}
+            }
         }
-    }
+    })
 }
 
-fn handle_container_stop(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &Event) {
+fn stop_stats_stream(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &Event) {
     match tasks.remove(&event.container_name) {
         Some(handle) => handle.abort(),
         None => {}
@@ -72,6 +77,7 @@ fn handle_container_stop(tasks: &mut HashMap<String, task::JoinHandle<()>>, even
 }
 
 fn send_stat_events(source: &Event, stats: &Stats, sender: &broadcast::Sender<Event>) {
+    // TODO throttle stats with config
     for event in get_stat_events(source, stats).into_iter() {
         match sender.send(event) {
             Ok(_) => {}
