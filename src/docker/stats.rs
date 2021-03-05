@@ -34,7 +34,7 @@ pub async fn source(
             match &event.event {
                 &EventType::State(ContainerEvent::Start) => {
                     tasks.insert(
-                        event.container_name,
+                        event.container_name.to_owned(),
                         start_stats_stream(client.clone(), event.clone(), event_sender.clone())
                             .await,
                     );
