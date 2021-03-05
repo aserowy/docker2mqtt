@@ -1,13 +1,11 @@
+use tracing::warn;
+
 use crate::{
     configuration::Configuration,
     docker::{ContainerEvent, Event, EventType},
 };
 
-use super::{
-    availability,
-    discovery::{self, HassioResult},
-    payload, topic,
-};
+use super::{availability, discovery, payload, topic};
 
 #[derive(Debug)]
 pub struct Message {
@@ -18,10 +16,8 @@ pub struct Message {
 pub fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
     let mut messages = vec![];
 
-    if let EventType::State(ContainerEvent::Create) = &event.event {
-        for message in get_discovery_messages(&event, conf) {
-            messages.push(message)
-        }
+    for message in get_discovery(&event, conf) {
+        messages.push(message)
     }
 
     if let EventType::State(container_event) = &event.event {
@@ -32,7 +28,6 @@ pub fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
     }
 
     // TODO availability for sensors only between start->stop
-    // TODO clean up on destroy
 
     messages.push(Message {
         topic: topic::state(&event.container_name, &event.event.to_string(), conf),
@@ -42,7 +37,7 @@ pub fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
     messages
 }
 
-fn get_discovery_messages(event: &Event, conf: &Configuration) -> Vec<Message> {
+fn get_discovery(event: &Event, conf: &Configuration) -> Vec<Message> {
     let sensors = vec![
         EventType::CpuUsage(0.0),
         EventType::Image("".to_owned()),
@@ -50,10 +45,9 @@ fn get_discovery_messages(event: &Event, conf: &Configuration) -> Vec<Message> {
         EventType::State(ContainerEvent::Create),
     ];
 
-    let container_name = &event.container_name;
     let mut result = vec![];
-    for sensor in sensors {
-        if let Ok(message) = get_discovery_message(container_name, &sensor.to_string(), conf) {
+    for sensor in sensors.iter() {
+        if let Some(message) = get_discovery_message(event, sensor, conf) {
             result.push(message);
         }
     }
@@ -62,19 +56,35 @@ fn get_discovery_messages(event: &Event, conf: &Configuration) -> Vec<Message> {
 }
 
 fn get_discovery_message(
-    container_name: &str,
-    event_name: &str,
+    event: &Event,
+    sensor: &EventType,
     conf: &Configuration,
-) -> HassioResult<Message> {
+) -> Option<Message> {
+    let container_name = &event.container_name;
+    let event_name = &sensor.to_string();
+
     let topic = match discovery::topic(container_name, event_name, conf) {
         Ok(topic) => topic,
-        Err(e) => return Err(e),
+        Err(e) => {
+            warn!("could not resolve discovery topic: {:?}", e);
+            return None;
+        }
     };
 
     let payload = match discovery::payload(container_name, event_name, conf) {
         Ok(payload) => payload,
-        Err(e) => return Err(e),
+        Err(e) => {
+            warn!("could not resolve discovery topic: {:?}", e);
+            return None;
+        }
     };
 
-    Ok(Message { topic, payload })
+    match &event.event {
+        EventType::State(ContainerEvent::Create) => Some(Message { topic, payload }),
+        EventType::State(ContainerEvent::Destroy) => Some(Message {
+            topic,
+            payload: "".to_owned(),
+        }),
+        _ => None,
+    }
 }
