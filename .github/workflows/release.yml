@@ -30,7 +30,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: resolve_version_tag
-        id: get_version
+        id: version_tag
         if: startsWith(github.ref, 'refs/tags/')
         uses: battila7/get-version-action@v2
 
@@ -38,7 +38,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: thomaseizinger/set-crate-version@0941739e872e465c18af1148eccf85b249b82016
         with:
-          version: ${{ steps.get_version.outputs.version-without-v }}
+          version: ${{ steps.version_tag.outputs.version-without-v }}
 
       - name: cargo_build_armv7
         uses: actions-rs/cargo@v1
@@ -46,6 +46,25 @@ jobs:
           use-cross: true
           command: build
           args: --target armv7-unknown-linux-musleabihf --release
+
+      - name: build_changelog
+        id: changelog
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: mikepenz/release-changelog-builder-action@v1
+        with:
+          configuration: ".github/release_notes_configuration.json"
+          files: |
+            /target/armv7-unknown-linux-musleabihf/release/docker2mqtt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: release_binaries
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: docker_login
         if: startsWith(github.ref, 'refs/tags/')
@@ -67,6 +86,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:${{ steps.get_version.outputs.version }} \
+            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }} \
             --tag serowy/docker2mqtt:latest \
             --platform linux/arm/v7 .
