@@ -2,10 +2,10 @@ name: armv7_pipeline
 
 on:
   push:
-    branches:
-      - "release/**"
-    paths:
-      - "Cargo.toml"
+    branches-ignore:
+      - "!main"
+    tags:
+      - "v*.*.*"
 
 jobs:
   linux_armv7:
