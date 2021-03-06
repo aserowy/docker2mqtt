@@ -1,0 +1,20 @@
+{
+    "categories": [
+        {
+            "title": "## New",
+            "labels": ["enhancement"]
+        },
+        {
+            "title": "## Fixes",
+            "labels": ["bug"]
+        },
+        {
+            "title": "## Maintenance",
+            "labels": ["chore"]
+        }
+    ],
+    "sort": "ASC",
+    "template": "${{CHANGELOG}}",
+    "pr_template": "- ${{TITLE}} (#${{NUMBER}})",
+    "empty_template": "- no changes"
+}
