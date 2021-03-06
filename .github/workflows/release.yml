@@ -2,10 +2,8 @@ name: armv7_pipeline
 
 on:
   push:
-    branches-ignore:
-      - "!main"
-    tags:
-      - "v*.*.*"
+    tags: "v[0-9]+.[0-9]+.[0-9]+"
+    branches: "main"
 
 jobs:
   linux_armv7:
@@ -42,19 +40,23 @@ jobs:
           args: --target armv7-unknown-linux-musleabihf --release
 
       - name: docker_login
+        if: startsWith(github.ref, 'refs/tags/')
         run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
 
       - name: docker_setup_qemu
+        if: startsWith(github.ref, 'refs/tags/')
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
 
       - name: docker_setup_buildx
+        if: startsWith(github.ref, 'refs/tags/')
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
 
       - name: docker_build
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           docker buildx build --push \
             --tag serowy/docker2mqtt:$RELEASE_VERSION \
