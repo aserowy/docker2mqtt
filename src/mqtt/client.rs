@@ -40,16 +40,13 @@ impl MqttClient {
             .publish(message.topic, get_qos(conf), true, message.payload)
             .await;
 
-        match tkn {
-            Err(e) => {
-                error!("could not publish to mqtt broker: {}", e);
-            }
-            _ => (),
+        if let Err(e) = tkn {
+            error!("could not publish to mqtt broker: {}", e);
         }
     }
 }
 
-fn set_credentials(conf: &Configuration, options: &mut MqttOptions) -> () {
+fn set_credentials(conf: &Configuration, options: &mut MqttOptions) {
     let username = match &conf.mqtt.username {
         Some(username) => username,
         None => return,

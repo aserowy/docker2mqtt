@@ -43,7 +43,7 @@ pub fn create(
             identifiers,
             manufacturer: "docker2mqtt".to_string(),
             model: "docker".to_string(),
-            name: device_name.to_string(),
+            name: device_name,
         },
         name: unique_id.to_string(),
         payload_available: Availability::Online.to_string(),

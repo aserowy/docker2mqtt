@@ -12,7 +12,7 @@ use tracing::error;
 
 use super::{ContainerEvent, Event, EventType};
 
-pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> () {
+pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
     task::spawn(async move {
         let mut query = HashMap::new();
         query.insert("type".to_owned(), vec!["container".to_owned()]);
@@ -23,7 +23,7 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
             filters: query,
         });
 
-        let mut stream = client.events(filter).filter_map(|rslt| get_events(rslt));
+        let mut stream = client.events(filter).filter_map(get_events);
 
         while let Some(events) = stream.next().await {
             for event in events.into_iter() {
@@ -50,8 +50,8 @@ fn get_events(result: Result<SystemEventsResponse, Error>) -> Option<Vec<Event>>
     let mut messages = vec![];
 
     match &state_event.event {
-        &EventType::State(ContainerEvent::Undefined) => return None,
-        &EventType::State(ContainerEvent::Create) => messages.push(get_image_event(&response)),
+        EventType::State(ContainerEvent::Undefined) => return None,
+        EventType::State(ContainerEvent::Create) => messages.push(get_image_event(&response)),
         _ => {}
     }
 
@@ -80,9 +80,8 @@ fn get_attribute(actor: &Option<SystemEventsResponseActor>, attribute: &str) -> 
     let mut result = "".to_owned();
     if let Some(some_actor) = actor {
         if let Some(attributes) = &some_actor.attributes {
-            match attributes.get(attribute) {
-                Some(name) => result = name.to_owned(),
-                None => {}
+            if let Some(name) = attributes.get(attribute) {
+                result = name.to_owned()
             }
         }
     }
