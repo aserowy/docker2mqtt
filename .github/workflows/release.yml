@@ -15,9 +15,10 @@ jobs:
       - name: setup_toolchain_armv7
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
-          target: armv7-unknown-linux-musleabihf
+          components: rustfmt, clippy
           override: true
+          target: armv7-unknown-linux-musleabihf
+          toolchain: stable
 
       - name: cargo_dependency_cache
         uses: actions/cache@v2
@@ -36,6 +37,17 @@ jobs:
         uses: thomaseizinger/set-crate-version@0941739e872e465c18af1148eccf85b249b82016
         with:
           version: ${{ steps.version_tag.outputs.version-without-v }}
+
+      - name: cargo_clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+
+      - name: security_audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: cargo_build_armv7
         uses: actions-rs/cargo@v1

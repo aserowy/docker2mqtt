@@ -9,5 +9,6 @@
     "rust-analyzer.updates.askBeforeDownload": false,
     "rust-analyzer.cargo.loadOutDirsFromCheck": true,
     "rust-analyzer.checkOnSave.command": "clippy",
+    "rust-analyzer.cargo.allFeatures": true,
   }
 }
