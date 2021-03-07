@@ -3,7 +3,6 @@ name: armv7_pipeline
 on:
   push:
     tags: "v[0-9]+.[0-9]+.[0-9]+"
-    branches: "main"
 
 jobs:
   linux_armv7:
@@ -31,12 +30,10 @@ jobs:
 
       - name: resolve_version_tag
         id: version_tag
-        if: startsWith(github.ref, 'refs/tags/')
         uses: battila7/get-version-action@v2
 
       - name: write_version_to_toml
-        if: startsWith(github.ref, 'refs/tags/')
-        run: thomaseizinger/set-crate-version@0941739e872e465c18af1148eccf85b249b82016
+        uses: thomaseizinger/set-crate-version@0941739e872e465c18af1148eccf85b249b82016
         with:
           version: ${{ steps.version_tag.outputs.version-without-v }}
 
@@ -49,41 +46,32 @@ jobs:
 
       - name: build_changelog
         id: changelog
-        if: startsWith(github.ref, 'refs/tags/')
         uses: mikepenz/release-changelog-builder-action@v1
         with:
           configuration: ".github/release_notes_configuration.json"
-          files: |
-            /target/armv7-unknown-linux-musleabihf/release/docker2mqtt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: release_binaries
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: release
+        uses: ncipollo/release-action@v1
         with:
           body: ${{ steps.changelog.outputs.changelog }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: docker_login
-        if: startsWith(github.ref, 'refs/tags/')
         run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
 
       - name: docker_setup_qemu
-        if: startsWith(github.ref, 'refs/tags/')
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
 
       - name: docker_setup_buildx
-        if: startsWith(github.ref, 'refs/tags/')
         uses: docker/setup-buildx-action@v1
         with:
           version: latest
 
       - name: docker_build
-        if: startsWith(github.ref, 'refs/tags/')
         run: |
           docker buildx build --push \
             --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }} \
