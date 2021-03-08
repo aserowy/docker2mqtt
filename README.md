@@ -1,5 +1,21 @@
 # docker2mqtt
 
+[![release][release-badge]][github-url]
+[![ci][ci-badge]][ci-url]
+[![license][mit-badge]][mit-url]
+[![pulls][pulls-badge]][docker-url]
+[![size][size-badge]][docker-url]
+
+[github-url]: https://github.com/aserowy/docker2mqtt
+[release-badge]: https://img.shields.io/github/v/release/aserowy/docker2mqtt?sort=semver
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+[mit-url]: https://github.com/aserowy/docker2mqtt/blob/master/LICENSE
+[ci-badge]: https://github.com/aserowy/docker2mqtt/actions/workflows/ci.yml/badge.svg?branch=main
+[ci-url]: https://github.com/aserowy/docker2mqtt/actions/workflows/ci.yml
+[pulls-badge]: https://img.shields.io/docker/pulls/serowy/docker2mqtt
+[size-badge]: https://img.shields.io/docker/image-size/serowy/docker2mqtt
+[docker-url]: https://hub.docker.com/r/serowy/docker2mqtt
+
 ## introduction
 
 docker2mqtt enables monitoring of your docker containers via mqtt. In addition, docker2mqtt also supports Home Assistant discovery and creates a single device for each container, where different sensors can be used to monitor the current state of the container.

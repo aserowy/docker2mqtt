@@ -1,13 +1,79 @@
-name: armv7_pipeline
+name: release
 
 on:
   push:
     tags: "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
+  audit:
+    name: audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup_toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          profile: minimal
+          toolchain: stable
+
+      - name: security_audit
+        uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup_toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: cargo_check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup_toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          components: rustfmt, clippy
+          override: true
+          profile: minimal
+          toolchain: stable
+
+      - name: cargo_fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+      - name: clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features
+
   linux_armv7:
     name: linux_armv7
     runs-on: ubuntu-latest
+    when: [audit, check, lint]
     steps:
       - name: checkout
         uses: actions/checkout@v2
@@ -15,9 +81,10 @@ jobs:
       - name: setup_toolchain_armv7
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
-          target: armv7-unknown-linux-musleabihf
+          components: rustfmt, clippy
           override: true
+          target: armv7-unknown-linux-musleabihf
+          toolchain: stable
 
       - name: cargo_dependency_cache
         uses: actions/cache@v2

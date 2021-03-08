@@ -17,7 +17,7 @@ pub async fn source(
     mut event_receiver: broadcast::Receiver<Event>,
     event_sender: broadcast::Sender<Event>,
     client: Docker,
-) -> () {
+) {
     task::spawn(async move {
         let mut tasks = HashMap::new();
         loop {
@@ -32,17 +32,17 @@ pub async fn source(
             }
 
             match &event.event {
-                &EventType::State(ContainerEvent::Start) => {
+                EventType::State(ContainerEvent::Start) => {
                     tasks.insert(
                         event.container_name.to_owned(),
                         start_stats_stream(client.clone(), event.clone(), event_sender.clone())
                             .await,
                     );
                 }
-                &EventType::State(ContainerEvent::Stop) => {
+                EventType::State(ContainerEvent::Stop) => {
                     stop_stats_stream(&mut tasks, &event);
                 }
-                &EventType::State(ContainerEvent::Die) => {
+                EventType::State(ContainerEvent::Die) => {
                     stop_stats_stream(&mut tasks, &event);
                 }
                 _ => {}
@@ -70,9 +70,8 @@ async fn start_stats_stream(
 }
 
 fn stop_stats_stream(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &Event) {
-    match tasks.remove(&event.container_name) {
-        Some(handle) => handle.abort(),
-        None => {}
+    if let Some(handle) = tasks.remove(&event.container_name) {
+        handle.abort()
     }
 }
 
@@ -135,8 +134,7 @@ fn number_cpus(stats: &Stats) -> u64 {
             .cpu_stats
             .cpu_usage
             .percpu_usage
-            .as_ref()
-            .map(|v| v.as_slice())
+            .as_deref()
             .unwrap_or(empty)
             .len() as u64
     }

@@ -23,10 +23,7 @@ pub async fn spin_up(sender: mpsc::Sender<Event>) {
     event_router(event_receiver_router, sender).await;
 }
 
-async fn event_router(
-    mut event_receiver: broadcast::Receiver<Event>,
-    sender: mpsc::Sender<Event>,
-) -> () {
+async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: mpsc::Sender<Event>) {
     task::spawn(async move {
         // TODO handle faulted receive
         while let Ok(event) = event_receiver.recv().await {

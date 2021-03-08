@@ -4,7 +4,7 @@ use tracing::error;
 
 use super::{ContainerEvent, Event, EventType};
 
-pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> () {
+pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
     task::spawn(async move {
         let filter = Some(ListContainersOptions::<String> {
             all: true,
@@ -41,7 +41,7 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) -> (
             }
 
             for event in events.into_iter() {
-                if let &EventType::State(ContainerEvent::Undefined) = &event.event {
+                if let EventType::State(ContainerEvent::Undefined) = &event.event {
                     continue;
                 }
 

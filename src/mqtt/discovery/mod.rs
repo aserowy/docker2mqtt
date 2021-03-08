@@ -47,9 +47,9 @@ fn get_hassio(conf: &Configuration) -> HassioResult<&Hassio> {
         Some(hassio) => match hassio {
             Hassio {
                 discovery: false, ..
-            } => return Err(HassioErr::DiscoveryDisabled),
+            } => Err(HassioErr::DiscoveryDisabled),
             _ => Ok(hassio),
         },
-        None => return Err(HassioErr::DiscoveryDisabled),
+        None => Err(HassioErr::DiscoveryDisabled),
     }
 }
