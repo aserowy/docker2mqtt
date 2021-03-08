@@ -23,7 +23,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   check:
-    name: Check
+    name: check
     runs-on: ubuntu-latest
     steps:
       - name: checkout
