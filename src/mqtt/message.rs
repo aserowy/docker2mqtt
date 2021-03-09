@@ -46,11 +46,11 @@ fn get_discovery(event: &Event, conf: &Configuration) -> Vec<Message> {
     ];
 
     let mut result = vec![];
-    for sensor in sensors.iter() {
-        if let Some(message) = get_discovery_message(event, sensor, conf) {
-            result.push(message);
-        }
-    }
+
+    sensors
+        .iter()
+        .filter_map(|sensor| get_discovery_message(event, sensor, conf))
+        .for_each(|message| result.push(message));
 
     result
 }

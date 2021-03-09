@@ -25,7 +25,7 @@ pub async fn spin_up(mut receiver: Receiver<Event>, conf: Configuration) {
 }
 
 #[instrument(level = "debug")]
-async fn send_event_messages(mqtt_client: &MqttClient, event: Event, conf: &Configuration) -> () {
+async fn send_event_messages(mqtt_client: &MqttClient, event: Event, conf: &Configuration) {
     let messages = message::get_event_messages(event, conf);
 
     for message in messages.into_iter() {

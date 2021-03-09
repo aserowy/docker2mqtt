@@ -25,8 +25,17 @@ pub async fn spin_up(sender: mpsc::Sender<Event>) {
 
 async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: mpsc::Sender<Event>) {
     task::spawn(async move {
-        // TODO handle faulted receive
-        while let Ok(event) = event_receiver.recv().await {
+        loop {
+            let receive = event_receiver.recv().await;
+            let event: Event;
+            match receive {
+                Ok(evnt) => event = evnt,
+                Err(e) => {
+                    error!("receive failed: {}", e);
+                    continue;
+                }
+            }
+
             match sender.send(event).await {
                 Ok(_) => {}
                 Err(e) => error!("event could not be send to mqtt client: {}", e),

@@ -31,24 +31,32 @@ pub async fn source(
                 }
             }
 
-            match &event.event {
-                EventType::State(ContainerEvent::Start) => {
-                    tasks.insert(
-                        event.container_name.to_owned(),
-                        start_stats_stream(client.clone(), event.clone(), event_sender.clone())
-                            .await,
-                    );
-                }
-                EventType::State(ContainerEvent::Stop) => {
-                    stop_stats_stream(&mut tasks, &event);
-                }
-                EventType::State(ContainerEvent::Die) => {
-                    stop_stats_stream(&mut tasks, &event);
-                }
-                _ => {}
-            }
+            handle_event(event, &mut tasks, &client, &event_sender).await;
         }
     });
+}
+
+async fn handle_event(
+    event: Event,
+    tasks: &mut HashMap<String, JoinHandle<()>>,
+    client: &Docker,
+    event_sender: &broadcast::Sender<Event>,
+) {
+    match &event.event {
+        EventType::State(ContainerEvent::Start) => {
+            tasks.insert(
+                event.container_name.to_owned(),
+                start_stats_stream(client.clone(), event.clone(), event_sender.clone()).await,
+            );
+        }
+        EventType::State(ContainerEvent::Stop) => {
+            stop_stats_stream(tasks, &event);
+        }
+        EventType::State(ContainerEvent::Die) => {
+            stop_stats_stream(tasks, &event);
+        }
+        _ => {}
+    }
 }
 
 async fn start_stats_stream(
@@ -76,7 +84,6 @@ fn stop_stats_stream(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &
 }
 
 fn send_stat_events(source: &Event, stats: &Stats, sender: &broadcast::Sender<Event>) {
-    // TODO throttle stats with config
     for event in get_stat_events(source, stats).into_iter() {
         match sender.send(event) {
             Ok(_) => {}
