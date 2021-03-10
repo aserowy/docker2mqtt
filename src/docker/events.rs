@@ -24,7 +24,6 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
         });
 
         let mut stream = client.events(filter).filter_map(get_events);
-
         loop {
             if let Some(events) = stream.next().await {
                 for event in events.into_iter() {
