@@ -121,13 +121,10 @@ fn read_file(path: &str, filename_variants: Vec<&str>) -> String {
 }
 
 fn read_single_file(file: String) -> io::Result<String> {
-    match File::open(file) {
-        Ok(mut file) => {
-            let mut content = String::new();
-            file.read_to_string(&mut content).unwrap();
+    let mut file = File::open(file)?;
+    let mut content = String::new();
 
-            Ok(content)
-        }
-        Err(e) => Err(e),
-    }
+    file.read_to_string(&mut content)?;
+
+    Ok(content)
 }

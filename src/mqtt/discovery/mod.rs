@@ -15,11 +15,7 @@ pub enum HassioErr {
 
 #[instrument(level = "debug")]
 pub fn topic(container_name: &str, event_name: &str, conf: &Configuration) -> HassioResult<String> {
-    let hassio = match get_hassio(conf) {
-        Ok(hassio) => hassio,
-        Err(e) => return Err(e),
-    };
-
+    let hassio = get_hassio(conf)?;
     let unique_id = payload::get_unique_id(conf, hassio, container_name, event_name);
 
     Ok(format!(
@@ -34,10 +30,7 @@ pub fn payload(
     event_name: &str,
     conf: &Configuration,
 ) -> HassioResult<String> {
-    let hassio = match get_hassio(conf) {
-        Ok(hassio) => hassio,
-        Err(e) => return Err(e),
-    };
+    let hassio = get_hassio(conf)?;
 
     Ok(payload::create(container_name, event_name, conf, hassio))
 }
