@@ -92,7 +92,7 @@ jobs:
   linux_armv7:
     name: linux_armv7
     runs-on: ubuntu-latest
-    when: [audit, check, lint, test]
+    needs: [audit, check, lint, test]
     steps:
       - name: checkout
         uses: actions/checkout@v2
