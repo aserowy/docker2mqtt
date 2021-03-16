@@ -5,7 +5,7 @@ use bollard::{
     Docker,
 };
 use tokio::{
-    sync::broadcast,
+    sync::broadcast::{self, error::RecvError},
     task::{self, JoinHandle},
 };
 use tokio_stream::StreamExt;
@@ -25,6 +25,7 @@ pub async fn source(
             let event: Event;
             match receive {
                 Ok(evnt) => event = evnt,
+                Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
                     continue;
@@ -66,12 +67,10 @@ async fn start_stats_stream(
 ) -> JoinHandle<()> {
     task::spawn(async move {
         let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
-
-        loop {
-            match stream.next().await {
-                Some(Ok(stats)) => send_stat_events(&event, &stats, &sender),
-                Some(Err(e)) => error!("failed to receive valid stats: {}", e),
-                None => {}
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok(stats) => send_stat_events(&event, &stats, &sender),
+                Err(e) => error!("failed to receive valid stats: {}", e),
             }
         }
     })
