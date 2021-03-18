@@ -9,6 +9,8 @@
 	"workspaceFolder": "/workspace",
 	"shutdownAction": "stopCompose",
 	"extensions": [
+		"eamodio.gitlens",
+		"mhutchie.git-graph",
 		"esbenp.prettier-vscode",
 		"vadimcn.vscode-lldb",
 		"mutantdino.resourcemonitor",
