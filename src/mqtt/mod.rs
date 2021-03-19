@@ -16,10 +16,8 @@ pub async fn spin_up(mut receiver: Receiver<Event>, conf: Configuration) {
     let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
 
     task::spawn(async move {
-        loop {
-            if let Some(event) = receiver.recv().await {
-                send_event_messages(&mqtt_client, event, &conf).await;
-            }
+        while let Some(event) = receiver.recv().await {
+            send_event_messages(&mqtt_client, event, &conf).await;
         }
     });
 

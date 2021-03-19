@@ -1,7 +1,10 @@
 use std::fmt;
 
 use tokio::{
-    sync::{broadcast, mpsc},
+    sync::{
+        broadcast::{self, error::RecvError},
+        mpsc,
+    },
     task,
 };
 use tracing::error;
@@ -30,6 +33,7 @@ async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: mp
             let event: Event;
             match receive {
                 Ok(evnt) => event = evnt,
+                Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
                     continue;
