@@ -1,55 +1,12 @@
-use std::collections::HashMap;
-
 use bollard::{
     errors::Error,
     models::{SystemEventsResponse, SystemEventsResponseActor},
-    system::EventsOptions,
-    Docker,
 };
-use tokio::{sync::broadcast, task};
-use tokio_stream::{Stream, StreamExt};
 use tracing::error;
 
 use super::{ContainerEvent, Event, EventType};
 
-pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
-    task::spawn(async move {
-        let stream = get_event_response_stream(client).filter_map(response_to_events);
-
-        receive_loop(stream, event_sender).await
-    });
-}
-
-async fn receive_loop(
-    mut stream: impl Stream<Item = Vec<Event>> + Unpin,
-    event_sender: broadcast::Sender<Event>,
-) {
-    while let Some(events) = stream.next().await {
-        for event in events.into_iter() {
-            match event_sender.send(event) {
-                Ok(_) => {}
-                Err(e) => error!("event could not be send to event_router: {}", e),
-            }
-        }
-    }
-}
-
-fn get_event_response_stream(
-    client: Docker,
-) -> impl Stream<Item = Result<SystemEventsResponse, Error>> {
-    let mut query = HashMap::new();
-    query.insert("type".to_owned(), vec!["container".to_owned()]);
-
-    let filter = Some(EventsOptions::<String> {
-        since: None,
-        until: None,
-        filters: query,
-    });
-
-    client.events(filter)
-}
-
-fn response_to_events(result: Result<SystemEventsResponse, Error>) -> Option<Vec<Event>> {
+pub fn to_events(result: Result<SystemEventsResponse, Error>) -> Option<Vec<Event>> {
     let response: SystemEventsResponse;
     match result {
         Ok(rspns) => response = rspns,
