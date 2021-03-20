@@ -9,6 +9,7 @@
 	"workspaceFolder": "/workspace",
 	"shutdownAction": "stopCompose",
 	"extensions": [
+		"gruntfuggly.todo-tree",
 		"eamodio.gitlens",
 		"mhutchie.git-graph",
 		"esbenp.prettier-vscode",

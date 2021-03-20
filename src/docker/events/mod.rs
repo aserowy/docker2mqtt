@@ -62,7 +62,7 @@ mod must {
 
     #[test]
     fn filter_events_for_type_container_only() {
-        // test
+        // act
         let options = super::get_options();
         let mut filters = options.filters.into_iter();
 
@@ -81,7 +81,7 @@ mod must {
         let stream = tokio_stream::empty();
         let (event_sender, _) = broadcast::channel(500);
 
-        // test
+        // act
         let timeout = tokio::time::timeout(
             Duration::from_millis(100),
             super::receive_loop(stream, event_sender),
@@ -109,7 +109,7 @@ mod must {
 
         let (event_sender, mut receiver) = broadcast::channel(500);
 
-        // test
+        // act
         let timeout = tokio::time::timeout(
             Duration::from_millis(100),
             super::receive_loop(stream, event_sender),
@@ -152,7 +152,7 @@ mod must {
         let (event_sender, receiver) = broadcast::channel(500);
         drop(receiver); // droping receiver enforces err while sending to channel
 
-        // test
+        // act
         let timeout = tokio::time::timeout(
             Duration::from_millis(100),
             super::receive_loop(stream, event_sender),
