@@ -17,20 +17,6 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
     });
 }
 
-async fn receive_loop(
-    mut stream: impl Stream<Item = Vec<Event>> + Unpin,
-    event_sender: broadcast::Sender<Event>,
-) {
-    while let Some(events) = stream.next().await {
-        for event in events.into_iter() {
-            match event_sender.send(event) {
-                Ok(_) => {}
-                Err(e) => error!("event could not be send to event_router: {}", e),
-            }
-        }
-    }
-}
-
 fn get_event_response_stream(
     client: Docker,
 ) -> impl Stream<Item = Result<SystemEventsResponse, Error>> {
@@ -48,31 +34,68 @@ fn get_options() -> EventsOptions<String> {
     }
 }
 
+async fn receive_loop(
+    mut stream: impl Stream<Item = Vec<Event>> + Unpin,
+    event_sender: broadcast::Sender<Event>,
+) {
+    while let Some(events) = stream.next().await {
+        for event in events.into_iter() {
+            match event_sender.send(event) {
+                Ok(_) => {}
+                Err(e) => error!("event could not be send to event_router: {}", e),
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod must {
-    use std::time::Duration;
+    use std::{
+        sync::{Arc, Mutex},
+        time::Duration,
+    };
 
     use tokio::{sync::broadcast, task};
+    use tokio_stream::StreamExt;
 
     use super::super::{Event, EventType};
 
+    #[test]
+    fn filter_events_for_type_container_only() {
+        // test
+        let options = super::get_options();
+        let mut filters = options.filters.into_iter();
+
+        // assert
+        assert_eq!(
+            Some(("type".to_owned(), vec!["container".to_owned()])),
+            filters.next()
+        );
+
+        assert_eq!(None, filters.next());
+    }
+
     #[tokio::test]
     async fn stop_receive_loop_if_stream_closed() {
+        // arrange
         let stream = tokio_stream::empty();
         let (event_sender, _) = broadcast::channel(500);
 
-        let result = tokio::time::timeout(
+        // test
+        let timeout = tokio::time::timeout(
             Duration::from_millis(100),
             super::receive_loop(stream, event_sender),
         );
 
-        if result.await.is_err() {
+        // assert
+        if timeout.await.is_err() {
             panic!("future not closed in time");
         }
     }
 
     #[tokio::test]
     async fn pass_messages_through_receive_loop() {
+        // arrange
         let stream = tokio_stream::iter(vec![
             vec![Event {
                 container_name: "test1".to_owned(),
@@ -86,18 +109,60 @@ mod must {
 
         let (event_sender, mut receiver) = broadcast::channel(500);
 
-        let result = tokio::time::timeout(
+        // test
+        let timeout = tokio::time::timeout(
             Duration::from_millis(100),
             super::receive_loop(stream, event_sender),
         );
 
         task::spawn(async move {
-            if result.await.is_err() {
+            if timeout.await.is_err() {
                 panic!("future not closed in time");
             }
         });
 
+        // assert
         assert_eq!("test1", receiver.recv().await.unwrap().container_name);
         assert_eq!("test2", receiver.recv().await.unwrap().container_name);
+    }
+
+    #[tokio::test]
+    async fn not_stop_sending_while_getting_errors() {
+        // arrange
+        let counter = Arc::new(Mutex::new(0));
+        let counter_moved = counter.clone();
+
+        let stream = tokio_stream::iter(vec![
+            vec![Event {
+                container_name: "test1".to_owned(),
+                event: EventType::CpuUsage(1.0),
+            }],
+            vec![Event {
+                container_name: "test2".to_owned(),
+                event: EventType::CpuUsage(2.0),
+            }],
+        ])
+        .map(|evnts| {
+            let mut data = counter_moved.lock().unwrap();
+            *data += 1;
+
+            evnts
+        });
+
+        let (event_sender, receiver) = broadcast::channel(500);
+        drop(receiver); // droping receiver enforces err while sending to channel
+
+        // test
+        let timeout = tokio::time::timeout(
+            Duration::from_millis(100),
+            super::receive_loop(stream, event_sender),
+        );
+
+        if timeout.await.is_err() {
+            panic!("future not closed in time");
+        }
+
+        // assert
+        assert_eq!(2, *counter.lock().unwrap());
     }
 }
