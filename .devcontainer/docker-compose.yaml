@@ -9,6 +9,7 @@ services:
     volumes:
       - ./docker2mqtt/config:/docker2mqtt/config
       - ./docker2mqtt/logs:/docker2mqtt/logs
+      - ./docker2mqtt/db:/docker2mqtt/db
       - /var/run/docker.sock:/var/run/docker-host.sock
       - ../:/workspace:cached
     cap_add:
