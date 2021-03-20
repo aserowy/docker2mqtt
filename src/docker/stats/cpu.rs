@@ -1,19 +1,18 @@
-use bollard::container::{Stats, CPUStats};
+use bollard::container::CPUStats;
 
-pub fn calculate_cpu_usage(stats: &Stats) -> f64 {
-    let precpu_stats = &stats.precpu_stats;
-    let cpu_stats = &stats.cpu_stats;
+pub fn calculate_cpu_usage(precpu_stats: &CPUStats, cpu_stats: &CPUStats) -> f64 {
     if let Some(system_cpu_delta) = calculate_system_cpu_delta(precpu_stats, cpu_stats) {
-        (calculate_cpu_delta(precpu_stats, cpu_stats) as f64 / system_cpu_delta as f64)
-            * number_cpus(cpu_stats) as f64
-            * 100.0
+        calculate_relative_cpu_usage(precpu_stats, cpu_stats, system_cpu_delta)
     } else {
         0.0
     }
 }
 
-fn calculate_cpu_delta(precpu_stats: &CPUStats, cpu_stats: &CPUStats) -> u64 {
-    cpu_stats.cpu_usage.total_usage - precpu_stats.cpu_usage.total_usage
+fn calculate_relative_cpu_usage(precpu_stats: &CPUStats, cpu_stats: &CPUStats, system_cpu_delta: u64) -> f64 {
+    let delta_cpu_usage = (cpu_stats.cpu_usage.total_usage - precpu_stats.cpu_usage.total_usage) as f64;
+    (delta_cpu_usage / system_cpu_delta as f64)
+        * number_cpus(cpu_stats) as f64
+        * 100.0
 }
 
 fn calculate_system_cpu_delta(precpu_stats: &CPUStats, cpu_stats: &CPUStats) -> Option<u64> {
@@ -31,12 +30,68 @@ fn number_cpus(cpu_stats: &CPUStats) -> u64 {
     if let Some(cpus) = cpu_stats.online_cpus {
         cpus
     } else {
-        let empty = &[];
         cpu_stats
             .cpu_usage
             .percpu_usage
             .as_deref()
-            .unwrap_or(empty)
+            .unwrap_or(&[])
             .len() as u64
     }
+}
+
+#[cfg(test)]
+mod must {
+    use bollard::container::{CPUStats, CPUUsage, ThrottlingData};
+    use crate::docker::stats::cpu::calculate_cpu_usage;
+
+    fn create_cpu_stats(
+        percpu_usage: Option<Vec<u64>>,
+        total_usage: u64,
+        system_cpu_usage: Option<u64>,
+        online_cpus: Option<u64>
+    ) -> CPUStats {
+        CPUStats {
+            cpu_usage: CPUUsage {
+                percpu_usage,
+                usage_in_usermode: 0,
+                total_usage,
+                usage_in_kernelmode: 0
+            },
+            system_cpu_usage,
+            online_cpus,
+            throttling_data: ThrottlingData {
+                periods: 0,
+                throttled_periods: 0,
+                throttled_time: 0
+            }
+        }
+    }
+
+    #[test]
+    fn return_correct_cpu_usage_without_percpu_usage() {
+        let precpu_stats = create_cpu_stats(None, 60, Some(70), Some(2));
+        let cpu_stats = create_cpu_stats(None, 75, Some(80), Some(2));
+
+        assert_eq!(calculate_cpu_usage(&precpu_stats, &cpu_stats), 300.0);
+    }
+
+    #[test]
+    fn return_correct_cpu_usage_with_percpu_usage() {
+        let precpu_stats = create_cpu_stats(Some(vec![25, 45]), 60, Some(70), None);
+        let cpu_stats = create_cpu_stats(Some(vec![35, 45]), 75, Some(80), None);
+
+        assert_eq!(calculate_cpu_usage(&precpu_stats, &cpu_stats), 300.0);
+    }
+
+    #[test]
+    fn return_zero_cpu_usage_without_system_cpu_usage() {
+        let precpu_stats = create_cpu_stats(None, 60, Some(70), Some(2));
+        let precpu_stats_zero_system = create_cpu_stats(None, 60, None, Some(2));
+        let cpu_stats = create_cpu_stats(None, 75, Some(80), Some(2));
+        let cpu_stats_zero_system = create_cpu_stats(None, 75, None, Some(2));
+
+        assert_eq!(calculate_cpu_usage(&precpu_stats_zero_system, &cpu_stats), 0.0);
+        assert_eq!(calculate_cpu_usage(&precpu_stats, &cpu_stats_zero_system), 0.0);
+    }
+
 }

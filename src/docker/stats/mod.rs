@@ -99,7 +99,7 @@ fn get_stat_events(event: &Event, stats: &Stats) -> Vec<Event> {
     vec![
         Event {
             container_name: event.container_name.to_owned(),
-            event: EventType::CpuUsage(calculate_cpu_usage(stats)),
+            event: EventType::CpuUsage(calculate_cpu_usage(&stats.precpu_stats, &stats.cpu_stats)),
         },
         Event {
             container_name: event.container_name.to_owned(),
