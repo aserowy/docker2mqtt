@@ -1,22 +1,25 @@
-use bollard::container::{MemoryStats};
+use bollard::container::MemoryStats;
 
 pub fn calculate_memory_usage(stats: &MemoryStats) -> f64 {
     match (stats.usage, stats.stats, stats.limit) {
         (Some(usage), Some(stats), Some(limit)) => {
             let used_memory = usage - stats.cache;
             (used_memory as f64 / limit as f64) * 100.0
-        },
-        _ => 0.0
+        }
+        _ => 0.0,
     }
 }
 
-
 #[cfg(test)]
 mod must {
-    use bollard::container::{MemoryStats, MemoryStatsStats};
     use crate::docker::stats::memory::calculate_memory_usage;
+    use bollard::container::{MemoryStats, MemoryStatsStats};
 
-    fn create_memory_stats(stats: Option<MemoryStatsStats>, usage: Option<u64>, limit: Option<u64>) -> MemoryStats {
+    fn create_memory_stats(
+        stats: Option<MemoryStatsStats>,
+        usage: Option<u64>,
+        limit: Option<u64>,
+    ) -> MemoryStats {
         MemoryStats {
             stats,
             max_usage: None,
@@ -27,7 +30,7 @@ mod must {
             commit_peak: None,
             commitbytes: None,
             commitpeakbytes: None,
-            privateworkingset: None
+            privateworkingset: None,
         }
     }
 
@@ -64,16 +67,19 @@ mod must {
             inactive_file: 0,
             total_pgmajfault: 0,
             total_pgpgin: 0,
-            hierarchical_memsw_limit: None
+            hierarchical_memsw_limit: None,
         }
     }
+
+    const FLOAT_ERROR_MARGIN: f64 = 0.0099;
 
     #[test]
     fn return_correct_memory_usage() {
         let stats_stats = create_memory_stats_stats(3);
         let memory_stats = create_memory_stats(Option::Some(stats_stats), Some(5), Some(10));
         let actual = calculate_memory_usage(&memory_stats);
-        assert_eq!(actual, 20.0);
+
+        assert!((actual - 20.0).abs() < FLOAT_ERROR_MARGIN);
     }
 
     #[test]
@@ -81,14 +87,16 @@ mod must {
         let stats_stats = create_memory_stats_stats(3);
         let memory_stats = create_memory_stats(Option::Some(stats_stats), Some(5), None);
         let actual = calculate_memory_usage(&memory_stats);
-        assert_eq!(actual, 0.0);
+
+        assert!((actual - 0.0).abs() < FLOAT_ERROR_MARGIN);
     }
 
     #[test]
     fn return_zero_usage_if_no_stats_defined() {
         let memory_stats = create_memory_stats(None, Some(5), Some(10));
         let actual = calculate_memory_usage(&memory_stats);
-        assert_eq!(actual, 0.0);
+
+        assert!((actual - 0.0).abs() < FLOAT_ERROR_MARGIN);
     }
 
     #[test]
@@ -96,7 +104,7 @@ mod must {
         let stats_stats = create_memory_stats_stats(3);
         let memory_stats = create_memory_stats(Option::Some(stats_stats), None, Some(10));
         let actual = calculate_memory_usage(&memory_stats);
-        assert_eq!(actual, 0.0);
-    }
 
+        assert!((actual - 0.0).abs() < FLOAT_ERROR_MARGIN);
+    }
 }

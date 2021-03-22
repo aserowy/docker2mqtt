@@ -11,9 +11,9 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use super::{ContainerEvent, Event, EventType};
 use self::cpu::calculate_cpu_usage;
 use self::memory::calculate_memory_usage;
+use super::{ContainerEvent, Event, EventType};
 
 mod cpu;
 mod memory;
