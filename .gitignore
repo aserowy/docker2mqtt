@@ -1,7 +1,3 @@
-d2m.*
-/.devcontainer/home-assistant/
-mosquitto.log
-
 # Created by https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,jetbrains
 # Edit at https://www.toptal.com/developers/gitignore?templates=rust,visualstudiocode,jetbrains
 
@@ -129,3 +125,9 @@ Cargo.lock
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,jetbrains
+
+d2m.*
+/.devcontainer/home-assistant/
+mosquitto.log
+
+!*.code-workspace
