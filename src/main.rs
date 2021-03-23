@@ -6,6 +6,7 @@ mod configuration;
 mod docker;
 mod logging;
 mod mqtt;
+mod persistence;
 
 #[tokio::main]
 async fn main() {
@@ -14,6 +15,7 @@ async fn main() {
 
     let (sender, receiver) = mpsc::channel(100);
 
+    persistence::spin_up(&conf).await;
     docker::spin_up(sender).await;
     mqtt::spin_up(receiver, conf).await;
 }
