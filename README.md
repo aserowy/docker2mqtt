@@ -36,6 +36,7 @@ services:
     volumes:
       - ~/docker2mqtt/config:/docker2mqtt/config
       - ~/docker2mqtt/logs:/docker2mqtt/logs
+      - ~/docker2mqtt/db:/docker2mqtt/db
       - /var/run/docker.sock:/var/run/docker-host.sock
 ```
 
@@ -57,7 +58,7 @@ In the directory `~/docker2mqtt/config` the configuration of the service is then
   # level:
 
 mqtt:
-  # client_id is the id to unquily identify the sender
+  # client_id is the id to uniquely identify the sender
   client_id:
 
   # host is the remote hostname of your mqtt broker e.g. mosquitto
@@ -72,4 +73,8 @@ mqtt:
   # connection_timeout: # default: 20
   # keep_alive: # default: 30
   # qos: # default: 0
+
+# persistence: # Enables persistence of state
+  # Changes the directory for database files, default: /docker2mqtt/db/
+  # directory: 
 ```
