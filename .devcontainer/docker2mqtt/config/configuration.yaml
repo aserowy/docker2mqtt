@@ -6,6 +6,8 @@ hassio:
 logging:
   level: DEBUG
 
+persistence:
+
 mqtt:
   client_id: hostname
   # connection_timeout: # default: 20

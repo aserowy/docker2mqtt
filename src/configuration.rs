@@ -15,6 +15,9 @@ pub struct Configuration {
     pub logging: Logging,
 
     pub mqtt: Mqtt,
+
+    #[serde(default)]
+    pub persistence: Option<Persistence>,
 }
 
 impl Configuration {
@@ -127,4 +130,16 @@ fn read_single_file(file: String) -> io::Result<String> {
     file.read_to_string(&mut content)?;
 
     Ok(content)
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Persistence {
+    #[serde(default = "Persistence::default_directory")]
+    directory: String
+}
+
+impl Persistence {
+    fn default_directory() -> String {
+        "/docker2mqtt/db/".to_owned()
+    }
 }
