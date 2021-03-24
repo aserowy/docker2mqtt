@@ -18,14 +18,14 @@ mod stats;
 
 pub async fn spin_up(
     mqtt_sender: mpsc::Sender<Event>,
-    repo_receiver: oneshot::Receiver<Option<Vec<String>>>,
+    repo_init_receiver: oneshot::Receiver<Vec<String>>,
     repo_sender: mpsc::Sender<persistence::Event>
 ) {
     let docker_client = client::new();
     let (event_sender, event_receiver_router) = broadcast::channel(500);
     let event_receiver_stats = event_sender.subscribe();
 
-    initial::source(event_sender.clone(), docker_client.clone()).await;
+    initial::source(event_sender.clone(), repo_init_receiver, docker_client.clone()).await;
     events::source(event_sender.clone(), docker_client.clone()).await;
     stats::source(event_receiver_stats, event_sender, docker_client.clone()).await;
 

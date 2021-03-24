@@ -1,10 +1,20 @@
 use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
-use tokio::{sync::broadcast, task};
+use tokio::{
+    sync::{
+        broadcast,
+        oneshot
+    },
+    task
+};
 use tracing::error;
 
 use super::{ContainerEvent, Event, EventType};
 
-pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
+pub async fn source(
+    event_sender: broadcast::Sender<Event>,
+    repo_init_receiver: oneshot::Receiver<Vec<String>>,
+    client: Docker
+) {
     task::spawn(async move {
         let filter = Some(ListContainersOptions::<String> {
             all: true,
@@ -19,6 +29,8 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
             }
         };
 
+        let known_containers_maybe = repo_init_receiver.await.unwrap_or_default();
+        //TODO Sync existing and saved containers
         containers
             .into_iter()
             .flat_map(get_events_by_container)

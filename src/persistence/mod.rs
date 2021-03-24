@@ -13,12 +13,13 @@ mod no_persistence_repository;
 mod sled_repository;
 
 pub trait Repository {
-
+    fn add(&mut self, container_name: String);
+    fn delete(&mut self, container_name: String);
 }
 
 pub struct Event {
-    container_name: String,
-    event_type: EventType
+    pub container_name: String,
+    pub event_type: EventType
 }
 
 pub enum EventType {
@@ -27,11 +28,13 @@ pub enum EventType {
 }
 
 pub async fn spin_up(
-    init_sender: oneshot::Sender<Option<Vec<String>>>,
+    init_sender: oneshot::Sender<Vec<String>>,
     receiver: mpsc::Receiver<Event>,
     conf: &Configuration
 ) {
     let repository = create_repository(conf);
+
+
 }
 
 fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
