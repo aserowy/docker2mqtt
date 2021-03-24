@@ -9,6 +9,7 @@ use tokio::{
     task,
 };
 use tracing::error;
+use crate::persistence;
 
 mod client;
 mod events;
@@ -18,7 +19,7 @@ mod stats;
 pub async fn spin_up(
     mqtt_sender: mpsc::Sender<Event>,
     repo_receiver: oneshot::Receiver<Option<Vec<String>>>,
-    repo_sender: mpsc::Sender<String>
+    repo_sender: mpsc::Sender<persistence::Event>
 ) {
     let docker_client = client::new();
     let (event_sender, event_receiver_router) = broadcast::channel(500);

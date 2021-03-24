@@ -2,31 +2,33 @@ use tokio::sync::{
     mpsc,
     oneshot
 };
+
 use crate::configuration::Configuration;
+use self:: {
+    no_persistence_repository::NoPersistenceRepository,
+    sled_repository::SledRepository
+};
+
+mod no_persistence_repository;
+mod sled_repository;
 
 pub trait Repository {
 
 }
 
-struct NoPersistenceRepository {
-
+pub struct Event {
+    container_name: String,
+    event_type: EventType
 }
 
-impl Repository for NoPersistenceRepository {
-
-}
-
-struct SledRepository {
-
-}
-
-impl Repository for SledRepository {
-
+pub enum EventType {
+    Add,
+    Remove
 }
 
 pub async fn spin_up(
     init_sender: oneshot::Sender<Option<Vec<String>>>,
-    receiver: mpsc::Receiver<String>,
+    receiver: mpsc::Receiver<Event>,
     conf: &Configuration
 ) {
     let repository = create_repository(conf);
