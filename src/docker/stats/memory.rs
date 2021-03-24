@@ -1,6 +1,6 @@
 use bollard::container::MemoryStats;
 
-pub fn calculate_memory_usage(stats: &MemoryStats) -> f64 {
+pub fn usage(stats: &MemoryStats) -> f64 {
     match (stats.usage, stats.stats, stats.limit) {
         (Some(usage), Some(stats), Some(limit)) => {
             let used_memory = usage - stats.cache;
@@ -12,7 +12,7 @@ pub fn calculate_memory_usage(stats: &MemoryStats) -> f64 {
 
 #[cfg(test)]
 mod must {
-    use crate::docker::stats::memory::calculate_memory_usage;
+    use crate::docker::stats::memory::usage;
     use bollard::container::{MemoryStats, MemoryStatsStats};
 
     fn create_memory_stats(
@@ -77,7 +77,7 @@ mod must {
     fn return_correct_memory_usage() {
         let stats_stats = create_memory_stats_stats(3);
         let memory_stats = create_memory_stats(Option::Some(stats_stats), Some(5), Some(10));
-        let actual = calculate_memory_usage(&memory_stats);
+        let actual = usage(&memory_stats);
 
         assert!((actual - 20.0).abs() < FLOAT_ERROR_MARGIN);
     }
@@ -86,7 +86,7 @@ mod must {
     fn return_zero_usage_if_no_limit_defined() {
         let stats_stats = create_memory_stats_stats(3);
         let memory_stats = create_memory_stats(Option::Some(stats_stats), Some(5), None);
-        let actual = calculate_memory_usage(&memory_stats);
+        let actual = usage(&memory_stats);
 
         assert!((actual - 0.0).abs() < FLOAT_ERROR_MARGIN);
     }
@@ -94,7 +94,7 @@ mod must {
     #[test]
     fn return_zero_usage_if_no_stats_defined() {
         let memory_stats = create_memory_stats(None, Some(5), Some(10));
-        let actual = calculate_memory_usage(&memory_stats);
+        let actual = usage(&memory_stats);
 
         assert!((actual - 0.0).abs() < FLOAT_ERROR_MARGIN);
     }
@@ -103,7 +103,7 @@ mod must {
     fn return_zero_usage_if_no_usage_defined() {
         let stats_stats = create_memory_stats_stats(3);
         let memory_stats = create_memory_stats(Option::Some(stats_stats), None, Some(10));
-        let actual = calculate_memory_usage(&memory_stats);
+        let actual = usage(&memory_stats);
 
         assert!((actual - 0.0).abs() < FLOAT_ERROR_MARGIN);
     }

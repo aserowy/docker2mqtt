@@ -11,8 +11,6 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use self::cpu::calculate_cpu_usage;
-use self::memory::calculate_memory_usage;
 use super::{ContainerEvent, Event, EventType};
 
 mod cpu;
@@ -99,11 +97,11 @@ fn get_stat_events(event: &Event, stats: &Stats) -> Vec<Event> {
     vec![
         Event {
             container_name: event.container_name.to_owned(),
-            event: EventType::CpuUsage(calculate_cpu_usage(&stats.precpu_stats, &stats.cpu_stats)),
+            event: EventType::CpuUsage(cpu::usage(&stats.precpu_stats, &stats.cpu_stats)),
         },
         Event {
             container_name: event.container_name.to_owned(),
-            event: EventType::MemoryUsage(calculate_memory_usage(&stats.memory_stats)),
+            event: EventType::MemoryUsage(memory::usage(&stats.memory_stats)),
         },
     ]
 }

@@ -1,6 +1,6 @@
 use bollard::container::CPUStats;
 
-pub fn calculate_cpu_usage(precpu_stats: &CPUStats, cpu_stats: &CPUStats) -> f64 {
+pub fn usage(precpu_stats: &CPUStats, cpu_stats: &CPUStats) -> f64 {
     if let Some(system_cpu_delta) = calculate_system_cpu_delta(precpu_stats, cpu_stats) {
         calculate_relative_cpu_usage(precpu_stats, cpu_stats, system_cpu_delta)
     } else {
@@ -41,7 +41,7 @@ fn number_cpus(cpu_stats: &CPUStats) -> u64 {
 
 #[cfg(test)]
 mod must {
-    use crate::docker::stats::cpu::calculate_cpu_usage;
+    use crate::docker::stats::cpu::usage;
     use bollard::container::{CPUStats, CPUUsage, ThrottlingData};
 
     fn create_cpu_stats(
@@ -74,9 +74,7 @@ mod must {
         let precpu_stats = create_cpu_stats(None, 60, Some(70), Some(2));
         let cpu_stats = create_cpu_stats(None, 75, Some(80), Some(2));
 
-        assert!(
-            (calculate_cpu_usage(&precpu_stats, &cpu_stats) - 300.0).abs() < FLOAT_ERROR_MARGIN
-        );
+        assert!((usage(&precpu_stats, &cpu_stats) - 300.0).abs() < FLOAT_ERROR_MARGIN);
     }
 
     #[test]
@@ -84,9 +82,7 @@ mod must {
         let precpu_stats = create_cpu_stats(Some(vec![25, 45]), 60, Some(70), None);
         let cpu_stats = create_cpu_stats(Some(vec![35, 45]), 75, Some(80), None);
 
-        assert!(
-            (calculate_cpu_usage(&precpu_stats, &cpu_stats) - 300.0).abs() < FLOAT_ERROR_MARGIN
-        );
+        assert!((usage(&precpu_stats, &cpu_stats) - 300.0).abs() < FLOAT_ERROR_MARGIN);
     }
 
     #[test]
@@ -96,13 +92,7 @@ mod must {
         let cpu_stats = create_cpu_stats(None, 75, Some(80), Some(2));
         let cpu_stats_zero_system = create_cpu_stats(None, 75, None, Some(2));
 
-        assert!(
-            (calculate_cpu_usage(&precpu_stats_zero_system, &cpu_stats) - 0.0).abs()
-                < FLOAT_ERROR_MARGIN
-        );
-        assert!(
-            (calculate_cpu_usage(&precpu_stats, &cpu_stats_zero_system) - 0.0).abs()
-                < FLOAT_ERROR_MARGIN
-        );
+        assert!((usage(&precpu_stats_zero_system, &cpu_stats) - 0.0).abs() < FLOAT_ERROR_MARGIN);
+        assert!((usage(&precpu_stats, &cpu_stats_zero_system) - 0.0).abs() < FLOAT_ERROR_MARGIN);
     }
 }
