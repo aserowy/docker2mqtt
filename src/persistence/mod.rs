@@ -1,3 +1,7 @@
+use tokio::sync::{
+    mpsc,
+    oneshot
+};
 use crate::configuration::Configuration;
 
 pub trait Repository {
@@ -20,7 +24,11 @@ impl Repository for SledRepository {
 
 }
 
-pub async fn spin_up(conf: &Configuration) {
+pub async fn spin_up(
+    init_sender: oneshot::Sender<Option<Vec<String>>>,
+    receiver: mpsc::Receiver<String>,
+    conf: &Configuration
+) {
     let repository = create_repository(conf);
 }
 

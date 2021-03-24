@@ -4,6 +4,7 @@ use tokio::{
     sync::{
         broadcast::{self, error::RecvError},
         mpsc,
+        oneshot
     },
     task,
 };
@@ -14,7 +15,11 @@ mod events;
 mod initial;
 mod stats;
 
-pub async fn spin_up(sender: mpsc::Sender<Event>) {
+pub async fn spin_up(
+    mqtt_sender: mpsc::Sender<Event>,
+    repo_receiver: oneshot::Receiver<Option<Vec<String>>>,
+    repo_sender: mpsc::Sender<String>
+) {
     let docker_client = client::new();
     let (event_sender, event_receiver_router) = broadcast::channel(500);
     let event_receiver_stats = event_sender.subscribe();
@@ -23,7 +28,7 @@ pub async fn spin_up(sender: mpsc::Sender<Event>) {
     events::source(event_sender.clone(), docker_client.clone()).await;
     stats::source(event_receiver_stats, event_sender, docker_client.clone()).await;
 
-    event_router(event_receiver_router, sender).await;
+    event_router(event_receiver_router, mqtt_sender).await;
 }
 
 async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: mpsc::Sender<Event>) {
