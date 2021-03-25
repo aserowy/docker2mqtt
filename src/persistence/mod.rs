@@ -5,14 +5,14 @@ use tokio::sync::{
 
 use crate::configuration::Configuration;
 use self:: {
-    no_persistence_repository::NoPersistenceRepository,
-    sled_repository::SledRepository
+    no_persistence_repository::NoPersistenceRepository
 };
 
 mod no_persistence_repository;
 mod sled_repository;
 
 pub trait Repository {
+    fn list(&self) -> Vec<String>;
     fn add(&mut self, container_name: String);
     fn delete(&mut self, container_name: String);
 }
@@ -38,13 +38,14 @@ pub async fn spin_up(
 }
 
 fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
-    if conf.persistence.is_some() {
-        Box::new(SledRepository {
+    match &conf.persistence {
+        Some(persistence) => {
+            Box::new(sled_repository::create(persistence.directory.to_owned()))
+        }
+        _ => {
+            Box::new(NoPersistenceRepository {
 
-        })
-    } else {
-        Box::new(NoPersistenceRepository {
-
-        })
+            })
+        }
     }
 }

@@ -5,7 +5,12 @@ pub struct NoPersistenceRepository {
 }
 
 impl Repository for NoPersistenceRepository {
-    fn add(&mut self, container_name: String) {}
+    fn list(&self) -> Vec<String> {
+        Vec::new()
+    }
 
-    fn delete(&mut self, container_name: String) {}
+    fn add(&mut self, _: String) {}
+
+    fn delete(&mut self, _: String) {}
+
 }
