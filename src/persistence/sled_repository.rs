@@ -1,4 +1,4 @@
-use sled::{open, Db, IVec};
+use sled::{open, Db};
 use std::ops::Add;
 use tracing::error;
 
