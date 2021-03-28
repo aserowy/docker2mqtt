@@ -29,8 +29,15 @@ pub async fn source(
             }
         };
 
-        let known_containers_maybe = repo_init_receiver.await.unwrap_or_default();
-        //TODO Sync existing and saved containers
+        /*
+        let init_container_names: Vec<String> = containers
+            .iter()
+            .map(|c| get_container_name(c).to_owned())
+            .collect();
+        let docker_container_names = repo_init_receiver.await.unwrap_or_default();
+        sync_with_repository(docker_container_names, init_container_names, &repo_sender).await;
+        */
+
         containers
             .into_iter()
             .flat_map(get_events_by_container)

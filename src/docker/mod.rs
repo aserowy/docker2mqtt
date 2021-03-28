@@ -3,13 +3,11 @@ use std::fmt;
 use tokio::{
     sync::{
         broadcast::{self, error::RecvError},
-        mpsc,
         oneshot
     },
     task,
 };
 use tracing::error;
-use crate::persistence;
 
 mod client;
 mod events;
@@ -17,9 +15,8 @@ mod initial;
 mod stats;
 
 pub async fn spin_up(
-    mqtt_sender: mpsc::Sender<Event>,
-    repo_init_receiver: oneshot::Receiver<Vec<String>>,
-    repo_sender: mpsc::Sender<persistence::Event>
+    mqtt_sender: broadcast::Sender<Event>,
+    repo_init_receiver: oneshot::Receiver<Vec<String>>
 ) {
     let docker_client = client::new();
     let (event_sender, event_receiver_router) = broadcast::channel(500);
@@ -32,7 +29,7 @@ pub async fn spin_up(
     event_router(event_receiver_router, mqtt_sender).await;
 }
 
-async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: mpsc::Sender<Event>) {
+async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: broadcast::Sender<Event>) {
     task::spawn(async move {
         loop {
             let receive = event_receiver.recv().await;
@@ -46,7 +43,7 @@ async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: mp
                 }
             }
 
-            match sender.send(event).await {
+            match sender.send(event) {
                 Ok(_) => {}
                 Err(e) => error!("event could not be send to mqtt client: {}", e),
             }
