@@ -32,23 +32,23 @@ pub async fn spin_up(
 async fn event_router(mut event_receiver: broadcast::Receiver<Event>, sender: broadcast::Sender<Event>) {
     task::spawn(async move {
         loop {
-            let receive = event_receiver.recv().await;
-            let event: Event;
-            match receive {
-                Ok(evnt) => event = evnt,
+            match event_receiver.recv().await {
+                Ok(event) => send_event(&sender, event),
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
                     continue;
                 }
             }
-
-            match sender.send(event) {
-                Ok(_) => {}
-                Err(e) => error!("event could not be send to mqtt client: {}", e),
-            }
         }
     });
+}
+
+fn send_event(sender: &broadcast::Sender<Event>, event: Event) {
+    match sender.send(event) {
+        Ok(_) => {}
+        Err(e) => error!("event could not be send to mqtt client: {}", e),
+    }
 }
 
 #[derive(Clone, Debug)]
