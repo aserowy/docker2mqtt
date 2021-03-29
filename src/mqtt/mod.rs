@@ -13,7 +13,7 @@ mod message;
 mod payload;
 mod topic;
 
-pub async fn spin_up(mut receiver: Receiver<Event>, conf: Configuration) {
+pub async fn task(mut receiver: Receiver<Event>, conf: Configuration) {
     let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
 
     task::spawn(async move {

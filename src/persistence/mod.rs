@@ -20,7 +20,7 @@ pub trait Repository: Send {
     fn delete(&mut self, container_name: String);
 }
 
-pub async fn spin_up(
+pub async fn task(
     init_sender: oneshot::Sender<Vec<String>>,
     event_receiver: broadcast::Receiver<Event>,
     conf: &Configuration,

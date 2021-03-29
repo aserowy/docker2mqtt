@@ -12,7 +12,7 @@ mod events;
 mod initial;
 mod stats;
 
-pub async fn spin_up(
+pub async fn task(
     sender: broadcast::Sender<Event>,
     repo_init_receiver: oneshot::Receiver<Vec<String>>,
 ) {
