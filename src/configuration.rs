@@ -135,7 +135,7 @@ fn read_single_file(file: String) -> io::Result<String> {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Persistence {
     #[serde(default = "Persistence::default_directory")]
-    pub directory: String
+    pub directory: String,
 }
 
 impl Persistence {

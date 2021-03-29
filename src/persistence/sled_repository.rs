@@ -6,12 +6,12 @@ use crate::persistence::Repository;
 use std::str::from_utf8;
 
 pub struct SledRepository {
-    database: Db
+    database: Db,
 }
 
 pub fn create(directory: String) -> SledRepository {
     SledRepository {
-        database: open(directory.add("/docker.db")).unwrap() //TODO Panic okay?
+        database: open(directory.add("/docker.db")).unwrap(), //TODO Panic okay?
     }
 }
 
@@ -20,19 +20,19 @@ impl Repository for SledRepository {
         let mut entries = Vec::new();
         for entry_result in self.database.iter() {
             match entry_result {
-                Ok(entry) => {
-                    convert_to_string(entry.1.as_ref())
-                        .into_iter()
-                        .for_each(|v| entries.push(v))
-                },
-                Err(err) => error!("error receiving entry from repository: {}", err)
+                Ok(entry) => convert_to_string(entry.1.as_ref())
+                    .into_iter()
+                    .for_each(|v| entries.push(v)),
+                Err(err) => error!("error receiving entry from repository: {}", err),
             }
         }
         entries
     }
 
     fn add(&mut self, container_name: String) {
-        let result = self.database.insert(container_name.as_bytes(), container_name.as_bytes());
+        let result = self
+            .database
+            .insert(container_name.as_bytes(), container_name.as_bytes());
         if let Err(e) = result {
             error!("error saving string: {}", e)
         }
