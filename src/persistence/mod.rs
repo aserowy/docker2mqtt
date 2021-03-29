@@ -1,20 +1,15 @@
 use tokio::{
     sync::{
-        broadcast::{
-            self,
-            error::RecvError
-        },
-        oneshot
+        broadcast::{self, error::RecvError},
+        oneshot,
     },
-    task
+    task,
 };
 use tracing::error;
 
+use self::no_persistence_repository::NoPersistenceRepository;
 use crate::configuration::Configuration;
-use crate::docker::{Event, EventType, ContainerEvent};
-use self::{
-    no_persistence_repository::NoPersistenceRepository
-};
+use crate::docker::{ContainerEvent, Event, EventType};
 
 mod no_persistence_repository;
 mod sled_repository;
@@ -25,10 +20,10 @@ pub trait Repository: Send {
     fn delete(&mut self, container_name: String);
 }
 
-pub async fn spin_up(
+pub async fn task(
     init_sender: oneshot::Sender<Vec<String>>,
     event_receiver: broadcast::Receiver<Event>,
-    conf: &Configuration
+    conf: &Configuration,
 ) {
     let repository = create_repository(conf);
     initial(init_sender, repository.as_ref());
@@ -37,14 +32,8 @@ pub async fn spin_up(
 
 fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
     match &conf.persistence {
-        Some(persistence) => {
-            Box::new(sled_repository::create(persistence.directory.to_owned()))
-        }
-        _ => {
-            Box::new(NoPersistenceRepository {
-
-            })
-        }
+        Some(persistence) => Box::new(sled_repository::create(persistence.directory.to_owned())),
+        _ => Box::new(NoPersistenceRepository {}),
     }
 }
 
@@ -58,7 +47,7 @@ async fn source(mut event_receiver: broadcast::Receiver<Event>, mut repo: Box<dy
     task::spawn(async move {
         loop {
             match event_receiver.recv().await {
-                Ok(event) => {dispatch_event(event, &mut repo)},
+                Ok(event) => dispatch_event(event, &mut repo),
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
@@ -72,8 +61,7 @@ async fn source(mut event_receiver: broadcast::Receiver<Event>, mut repo: Box<dy
 fn dispatch_event(event: Event, repo: &mut Box<dyn Repository>) {
     if let EventType::State(container_event) = event.event {
         match container_event {
-            ContainerEvent::Create
-            | ContainerEvent::Start => repo.add(event.container_name),
+            ContainerEvent::Create | ContainerEvent::Start => repo.add(event.container_name),
             ContainerEvent::Destroy
             | ContainerEvent::Die
             | ContainerEvent::Kill

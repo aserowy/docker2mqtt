@@ -1,8 +1,5 @@
 use tokio::{sync::broadcast::Receiver, task};
-use tracing::{
-    error,
-    instrument
-};
+use tracing::{error, instrument};
 
 use crate::{configuration::Configuration, docker::Event};
 
@@ -16,7 +13,7 @@ mod message;
 mod payload;
 mod topic;
 
-pub async fn spin_up(mut receiver: Receiver<Event>, conf: Configuration) {
+pub async fn task(mut receiver: Receiver<Event>, conf: Configuration) {
     let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
 
     task::spawn(async move {
@@ -24,7 +21,7 @@ pub async fn spin_up(mut receiver: Receiver<Event>, conf: Configuration) {
             match receiver.recv().await {
                 Ok(event) => send_event_messages(&mqtt_client, event, &conf).await,
                 Err(RecvError::Closed) => break,
-                Err(RecvError::Lagged(m)) => error!("Receiver lagging. Skipped {} messages", m)
+                Err(RecvError::Lagged(m)) => error!("Receiver lagging. Skipped {} messages", m),
             }
         }
     });
