@@ -112,3 +112,78 @@ pub enum ContainerEvent {
     Unpause,
     Prune,
 }
+
+#[cfg(test)]
+mod must {
+    use std::time::Duration;
+
+    use tokio::{sync::broadcast, task};
+
+    use super::{Event, EventType};
+
+    #[tokio::test]
+    async fn stop_join_receviers_if_all_channels_closed() {
+        // arrange
+        let (sender1, receiver1) = broadcast::channel(100);
+        let (sender2, receiver2) = broadcast::channel(100);
+
+        let (sender3, _) = broadcast::channel(100);
+
+        // act
+        let timeout = tokio::time::timeout(
+            Duration::from_millis(100),
+            super::join_receivers(vec![receiver1, receiver2], sender3),
+        );
+
+        drop(sender1);
+        drop(sender2);
+
+        // assert
+        if timeout.await.is_err() {
+            panic!("future not closed in time");
+        }
+    }
+
+    #[tokio::test]
+    async fn send_messages_from_all_receivers_while_one_is_closed() {
+        // arrange
+        let (sender1, receiver1) = broadcast::channel(100);
+        let (sender2, receiver2) = broadcast::channel(100);
+        let (sender3, receiver3) = broadcast::channel(100);
+
+        let (sender4, mut receiver4) = broadcast::channel(100);
+
+        drop(sender1);
+
+        // act
+        let timeout = tokio::time::timeout(
+            Duration::from_millis(100),
+            super::join_receivers(vec![receiver1, receiver2, receiver3], sender4),
+        );
+
+        task::spawn(async move {
+            if timeout.await.is_err() {
+                panic!("future not closed in time");
+            }
+        });
+
+        sender2
+            .send(Event {
+                container_name: "container1".to_owned(),
+                event: EventType::CpuUsage(0.0),
+            })
+            .unwrap();
+
+        sender3
+            .send(Event {
+                container_name: "container2".to_owned(),
+                event: EventType::CpuUsage(1.0),
+            })
+            .unwrap();
+
+        // assert
+        assert_eq!("container1", receiver4.recv().await.unwrap().container_name);
+        assert_eq!("container2", receiver4.recv().await.unwrap().container_name);
+        assert!(receiver4.try_recv().is_err());
+    }
+}
