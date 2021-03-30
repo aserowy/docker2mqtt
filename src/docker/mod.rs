@@ -19,15 +19,15 @@ pub async fn task(
     let docker_client = client::new();
 
     let (init_sender, init_receiver) = broadcast::channel(500);
-    let mut stats_receivers = vec![init_sender.subscribe()];
+    let mut event_streams_stats = vec![init_sender.subscribe()];
     initial::source(init_sender, repo_init_receiver, docker_client.clone()).await;
 
     let (event_sender, event_receiver) = broadcast::channel(500);
-    stats_receivers.push(event_sender.subscribe());
+    event_streams_stats.push(event_sender.subscribe());
     events::source(event_sender, docker_client.clone()).await;
 
     let (stats_sender, stats_receiver) = broadcast::channel(500);
-    stats::source(stats_receivers, stats_sender, docker_client.clone()).await;
+    stats::source(event_streams_stats, stats_sender, docker_client.clone()).await;
 
     join_receivers(vec![init_receiver, event_receiver, stats_receiver], sender).await;
 }
