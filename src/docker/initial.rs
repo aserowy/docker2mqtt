@@ -4,6 +4,7 @@ use tokio::{
     task,
 };
 use tracing::error;
+use std::collections::HashSet;
 
 use super::{ContainerEvent, Event, EventType};
 
@@ -26,14 +27,7 @@ pub async fn source(
             }
         };
 
-        /*
-        let init_container_names: Vec<String> = containers
-            .iter()
-            .map(|c| get_container_name(c).to_owned())
-            .collect();
-        let docker_container_names = repo_init_receiver.await.unwrap_or_default();
-        sync_with_repository(docker_container_names, init_container_names, &repo_sender).await;
-        */
+        handle_orphaned_containers(&event_sender, repo_init_receiver, &containers).await;
 
         containers
             .into_iter()
@@ -114,4 +108,26 @@ fn get_state(container: &ContainerSummaryInner) -> ContainerEvent {
         Some(_) => ContainerEvent::Undefined,
         None => ContainerEvent::Undefined,
     }
+}
+
+async fn handle_orphaned_containers(
+    event_sender: &broadcast::Sender<Event>,
+    repo_init_receiver: oneshot::Receiver<Vec<String>>,
+    containers: &[ContainerSummaryInner],
+) {
+    let docker_container_names: HashSet<String> = containers
+        .iter()
+        .map(|c| get_container_name(&c).to_owned())
+        .collect();
+
+    repo_init_receiver
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|c| !docker_container_names.contains(c))
+        .map(|c| Event {
+            container_name: c,
+            event: EventType::State(ContainerEvent::Prune),
+        })
+        .for_each(|e| send_event(e, &event_sender));
 }
