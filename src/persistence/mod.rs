@@ -65,7 +65,8 @@ fn dispatch_event(event: Event, repo: &mut Box<dyn Repository>) {
             ContainerEvent::Destroy
             | ContainerEvent::Die
             | ContainerEvent::Kill
-            | ContainerEvent::Stop => repo.delete(event.container_name),
+            | ContainerEvent::Stop
+            | ContainerEvent::Prune => repo.delete(event.container_name),
             _ => {}
         }
     }
