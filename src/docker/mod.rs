@@ -69,13 +69,13 @@ async fn handle_receiver(
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Event {
     pub container_name: String,
     pub event: EventType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum EventType {
     CpuUsage(f64),
     Image(String),
@@ -96,7 +96,7 @@ impl fmt::Display for EventType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ContainerEvent {
     Undefined,
 
