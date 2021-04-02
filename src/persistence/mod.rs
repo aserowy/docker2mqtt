@@ -5,7 +5,10 @@ use tokio::{
     },
     task,
 };
-use tracing::error;
+use tracing::{
+    debug,
+    error
+};
 
 use self::no_persistence_repository::NoPersistenceRepository;
 use crate::configuration::Configuration;
@@ -32,8 +35,14 @@ pub async fn task(
 
 fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
     match &conf.persistence {
-        Some(persistence) => Box::new(sled_repository::create(persistence.directory.to_owned())),
-        _ => Box::new(NoPersistenceRepository {}),
+        Some(persistence) => {
+            debug!("Creating sled repository");
+            Box::new(sled_repository::create(persistence.directory.to_owned()))
+        },
+        _ => {
+            debug!("Creating no persistence repository");
+            Box::new(NoPersistenceRepository {})
+        },
     }
 }
 
