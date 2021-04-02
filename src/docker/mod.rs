@@ -122,7 +122,7 @@ mod must {
     use super::{Event, EventType};
 
     #[tokio::test]
-    async fn stop_join_receviers_if_all_channels_closed() {
+    async fn stop_join_receivers_if_all_channels_closed() {
         // arrange
         let (sender1, receiver1) = broadcast::channel(100);
         let (sender2, receiver2) = broadcast::channel(100);
