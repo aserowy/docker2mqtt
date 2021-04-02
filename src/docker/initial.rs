@@ -1,10 +1,10 @@
 use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
+use std::collections::HashSet;
 use tokio::{
     sync::{broadcast, oneshot},
     task,
 };
 use tracing::error;
-use std::collections::HashSet;
 
 use super::{ContainerEvent, Event, EventType};
 
@@ -135,14 +135,14 @@ async fn handle_orphaned_containers(
 #[cfg(test)]
 mod must {
     use super::handle_orphaned_containers;
-    use tokio::sync::{broadcast, oneshot};
+    use crate::docker::{ContainerEvent, Event, EventType};
     use bollard::models::ContainerSummaryInner;
-    use crate::docker::{Event, ContainerEvent, EventType};
+    use tokio::sync::{broadcast, oneshot};
 
     fn create_container_summary(name: String) -> ContainerSummaryInner {
         ContainerSummaryInner {
             id: None,
-            names: Some(vec!(name)),
+            names: Some(vec![name]),
             image: None,
             image_id: None,
             command: None,
@@ -155,7 +155,7 @@ mod must {
             status: None,
             host_config: None,
             network_settings: None,
-            mounts: None
+            mounts: None,
         }
     }
 
@@ -164,12 +164,12 @@ mod must {
         let (repo_init_sender, repo_init_receiver) = oneshot::channel();
         let (mqtt_sender, mut mqtt_receiver) = broadcast::channel(100);
 
-        let container_names: Vec<ContainerSummaryInner> = vec!("first", "second")
+        let container_names: Vec<ContainerSummaryInner> = vec!["first", "second"]
             .into_iter()
             .map(|c| create_container_summary(c.to_owned()))
             .collect();
 
-        if let Err(e) = repo_init_sender.send(vec!(String::from("second"), String::from("third"))) {
+        if let Err(e) = repo_init_sender.send(vec![String::from("second"), String::from("third")]) {
             panic!("error in test: {:?}", e)
         }
 
@@ -177,9 +177,8 @@ mod must {
 
         let expected = Event {
             container_name: "third".to_owned(),
-            event: EventType::State(ContainerEvent::Prune)
+            event: EventType::State(ContainerEvent::Prune),
         };
         assert_eq!(expected, mqtt_receiver.recv().await.unwrap());
     }
-
 }
