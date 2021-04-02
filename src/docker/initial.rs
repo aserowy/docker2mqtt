@@ -131,3 +131,55 @@ async fn handle_orphaned_containers(
         })
         .for_each(|e| send_event(e, &event_sender));
 }
+
+#[cfg(test)]
+mod must {
+    use super::handle_orphaned_containers;
+    use tokio::sync::{broadcast, oneshot};
+    use bollard::models::ContainerSummaryInner;
+    use crate::docker::{Event, ContainerEvent, EventType};
+
+    fn create_container_summary(name: String) -> ContainerSummaryInner {
+        ContainerSummaryInner {
+            id: None,
+            names: Some(vec!(name)),
+            image: None,
+            image_id: None,
+            command: None,
+            created: None,
+            ports: None,
+            size_rw: None,
+            size_root_fs: None,
+            labels: None,
+            state: None,
+            status: None,
+            host_config: None,
+            network_settings: None,
+            mounts: None
+        }
+    }
+
+    #[tokio::test]
+    async fn return_correct_remove_events_for_orphaned_containers() {
+        let (repo_init_sender, repo_init_receiver) = oneshot::channel();
+        let (mqtt_sender, mut mqtt_receiver) = broadcast::channel(100);
+
+        let container_names: Vec<ContainerSummaryInner> = vec!("first", "second")
+            .into_iter()
+            .map(|c| create_container_summary(c.to_owned()))
+            .collect();
+
+        if let Err(e) = repo_init_sender.send(vec!(String::from("second"), String::from("third"))) {
+            panic!("error in test: {:?}", e)
+        }
+
+        handle_orphaned_containers(&mqtt_sender, repo_init_receiver, &container_names).await;
+
+        let expected = Event {
+            container_name: "third".to_owned(),
+            event: EventType::State(ContainerEvent::Prune)
+        };
+        assert_eq!(expected, mqtt_receiver.recv().await.unwrap());
+    }
+
+}
