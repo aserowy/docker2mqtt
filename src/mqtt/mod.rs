@@ -13,13 +13,14 @@ mod message;
 mod payload;
 mod topic;
 
-pub async fn task(mut receiver: Receiver<Event>, conf: Configuration) {
-    let (mqtt_client, mqtt_loop) = MqttClient::new(&conf).await;
+pub async fn task(mut receiver: Receiver<Event>, conf: &Configuration) {
+    let (mqtt_client, mqtt_loop) = MqttClient::new(conf).await;
+    let conf_for_move = conf.clone();
 
     task::spawn(async move {
         loop {
             match receiver.recv().await {
-                Ok(event) => send_event_messages(&mqtt_client, event, &conf).await,
+                Ok(event) => send_event_messages(&mqtt_client, event, &conf_for_move).await,
                 Err(RecvError::Closed) => break,
                 Err(RecvError::Lagged(m)) => error!("Receiver lagging. Skipped {} messages", m),
             }

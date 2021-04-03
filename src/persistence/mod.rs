@@ -20,14 +20,27 @@ pub trait Repository: Send {
     fn delete(&mut self, container_name: String);
 }
 
-pub async fn task(
-    init_sender: oneshot::Sender<Vec<String>>,
-    event_receiver: broadcast::Receiver<Event>,
-    conf: &Configuration,
-) {
+pub fn init_task(init_sender: oneshot::Sender<Vec<String>>, conf: &Configuration) {
     let repository = create_repository(conf);
-    initial(init_sender, repository.as_ref());
-    source(event_receiver, repository).await;
+    if let Err(err) = init_sender.send(repository.list()) {
+        error!("error sending initial vector: {:?}", err);
+    }
+}
+
+pub async fn state_task(mut receiver: broadcast::Receiver<Event>, conf: &Configuration) {
+    let mut repository = create_repository(conf);
+    task::spawn(async move {
+        loop {
+            match receiver.recv().await {
+                Ok(event) => dispatch_event(event, &mut repository),
+                Err(RecvError::Closed) => break,
+                Err(e) => {
+                    error!("receive failed: {}", e);
+                    continue;
+                }
+            }
+        }
+    });
 }
 
 fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
@@ -41,27 +54,6 @@ fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
             Box::new(NoPersistenceRepository {})
         }
     }
-}
-
-fn initial(init_sender: oneshot::Sender<Vec<String>>, repo: &dyn Repository) {
-    if let Err(err) = init_sender.send(repo.list()) {
-        error!("error sending initial vector: {:?}", err);
-    }
-}
-
-async fn source(mut event_receiver: broadcast::Receiver<Event>, mut repo: Box<dyn Repository>) {
-    task::spawn(async move {
-        loop {
-            match event_receiver.recv().await {
-                Ok(event) => dispatch_event(event, &mut repo),
-                Err(RecvError::Closed) => break,
-                Err(e) => {
-                    error!("receive failed: {}", e);
-                    continue;
-                }
-            }
-        }
-    });
 }
 
 fn dispatch_event(event: Event, repo: &mut Box<dyn Repository>) {
