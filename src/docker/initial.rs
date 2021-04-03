@@ -1,10 +1,18 @@
 use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
-use tokio::{sync::broadcast, task};
+use std::collections::HashSet;
+use tokio::{
+    sync::{broadcast, oneshot},
+    task,
+};
 use tracing::error;
 
 use super::{ContainerEvent, Event, EventType};
 
-pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
+pub async fn source(
+    event_sender: broadcast::Sender<Event>,
+    repo_init_receiver: oneshot::Receiver<Vec<String>>,
+    client: Docker,
+) {
     task::spawn(async move {
         let filter = Some(ListContainersOptions::<String> {
             all: true,
@@ -18,6 +26,8 @@ pub async fn source(event_sender: broadcast::Sender<Event>, client: Docker) {
                 vec![]
             }
         };
+
+        handle_orphaned_containers(&event_sender, repo_init_receiver, &containers).await;
 
         containers
             .into_iter()
@@ -97,5 +107,78 @@ fn get_state(container: &ContainerSummaryInner) -> ContainerEvent {
         Some("dead") => ContainerEvent::Die,
         Some(_) => ContainerEvent::Undefined,
         None => ContainerEvent::Undefined,
+    }
+}
+
+async fn handle_orphaned_containers(
+    event_sender: &broadcast::Sender<Event>,
+    repo_init_receiver: oneshot::Receiver<Vec<String>>,
+    containers: &[ContainerSummaryInner],
+) {
+    let docker_container_names: HashSet<String> = containers
+        .iter()
+        .map(|c| get_container_name(&c).to_owned())
+        .collect();
+
+    repo_init_receiver
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|c| !docker_container_names.contains(c))
+        .map(|c| Event {
+            container_name: c,
+            event: EventType::State(ContainerEvent::Prune),
+        })
+        .for_each(|e| send_event(e, &event_sender));
+}
+
+#[cfg(test)]
+mod must {
+    use super::handle_orphaned_containers;
+    use crate::docker::{ContainerEvent, Event, EventType};
+    use bollard::models::ContainerSummaryInner;
+    use tokio::sync::{broadcast, oneshot};
+
+    fn create_container_summary(name: String) -> ContainerSummaryInner {
+        ContainerSummaryInner {
+            id: None,
+            names: Some(vec![name]),
+            image: None,
+            image_id: None,
+            command: None,
+            created: None,
+            ports: None,
+            size_rw: None,
+            size_root_fs: None,
+            labels: None,
+            state: None,
+            status: None,
+            host_config: None,
+            network_settings: None,
+            mounts: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn return_correct_remove_events_for_orphaned_containers() {
+        let (repo_init_sender, repo_init_receiver) = oneshot::channel();
+        let (mqtt_sender, mut mqtt_receiver) = broadcast::channel(100);
+
+        let container_names: Vec<ContainerSummaryInner> = vec!["first", "second"]
+            .into_iter()
+            .map(|c| create_container_summary(c.to_owned()))
+            .collect();
+
+        if let Err(e) = repo_init_sender.send(vec![String::from("second"), String::from("third")]) {
+            panic!("error in test: {:?}", e)
+        }
+
+        handle_orphaned_containers(&mqtt_sender, repo_init_receiver, &container_names).await;
+
+        let expected = Event {
+            container_name: "third".to_owned(),
+            event: EventType::State(ContainerEvent::Prune),
+        };
+        assert_eq!(expected, mqtt_receiver.recv().await.unwrap());
     }
 }

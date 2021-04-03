@@ -15,6 +15,9 @@ pub struct Configuration {
     pub logging: Logging,
 
     pub mqtt: Mqtt,
+
+    #[serde(default)]
+    pub persistence: Option<bool>,
 }
 
 impl Configuration {
@@ -127,4 +130,48 @@ fn read_single_file(file: String) -> io::Result<String> {
     file.read_to_string(&mut content)?;
 
     Ok(content)
+}
+
+#[cfg(test)]
+mod must {
+    #[test]
+    fn parse_defaults_for_minimal_config() {
+        // arrange
+        let buffer = "
+mqtt:
+  client_id: qwert
+  host: yuio
+  port: 1234";
+
+        // act
+        let config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
+
+        // assert
+        assert!(config.hassio.is_none());
+        assert!(config.persistence.is_none());
+
+        assert_eq!("INFO", config.logging.level);
+
+        assert_eq!(20, config.mqtt.connection_timeout);
+        assert_eq!(30, config.mqtt.keep_alive);
+        assert_eq!(0, config.mqtt.qos);
+    }
+
+    #[test]
+    fn parse_some_for_persistence() {
+        // arrange
+        let buffer = "
+persistence: true
+
+mqtt:
+  client_id: qwert
+  host: yuio
+  port: 1234";
+
+        // act
+        let config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
+
+        // assert
+        assert!(config.persistence.is_some());
+    }
 }

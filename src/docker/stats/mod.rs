@@ -17,15 +17,15 @@ mod cpu;
 mod memory;
 
 pub async fn source(
-    mut event_receiver: broadcast::Receiver<Event>,
+    receivers: Vec<broadcast::Receiver<Event>>,
     event_sender: broadcast::Sender<Event>,
     client: Docker,
 ) {
+    let (sender, mut receiver) = broadcast::channel(500);
     task::spawn(async move {
         let mut tasks = HashMap::new();
         loop {
-            let receive = event_receiver.recv().await;
-            match receive {
+            match receiver.recv().await {
                 Ok(event) => handle_event(event, &mut tasks, &client, &event_sender).await,
                 Err(RecvError::Closed) => break,
                 Err(e) => {
@@ -35,6 +35,8 @@ pub async fn source(
             }
         }
     });
+
+    super::join_receivers(receivers, sender).await;
 }
 
 async fn handle_event(
