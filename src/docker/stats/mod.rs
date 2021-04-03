@@ -25,17 +25,14 @@ pub async fn source(
     task::spawn(async move {
         let mut tasks = HashMap::new();
         loop {
-            let receive = receiver.recv().await;
-            let event: Event;
-            match receive {
-                Ok(evnt) => event = evnt,
+            match receiver.recv().await {
+                Ok(event) => handle_event(event, &mut tasks, &client, &event_sender).await,
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
                     continue;
                 }
             }
-            handle_event(event, &mut tasks, &client, &event_sender).await;
         }
     });
 
