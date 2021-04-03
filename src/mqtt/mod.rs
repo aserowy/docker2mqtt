@@ -1,10 +1,12 @@
-use tokio::{sync::broadcast::Receiver, task};
+use tokio::{
+    sync::broadcast::{error::RecvError, Receiver},
+    task,
+};
 use tracing::{error, instrument};
 
 use crate::{configuration::Configuration, docker::Event};
 
 use self::client::MqttClient;
-use tokio::sync::broadcast::error::RecvError;
 
 mod availability;
 mod client;
