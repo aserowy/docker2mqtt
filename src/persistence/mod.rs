@@ -67,12 +67,8 @@ async fn source(mut event_receiver: broadcast::Receiver<Event>, mut repo: Box<dy
 fn dispatch_event(event: Event, repo: &mut Box<dyn Repository>) {
     if let EventType::State(container_event) = event.event {
         match container_event {
-            ContainerEvent::Create | ContainerEvent::Start => repo.add(event.container_name),
-            ContainerEvent::Destroy
-            | ContainerEvent::Die
-            | ContainerEvent::Kill
-            | ContainerEvent::Stop
-            | ContainerEvent::Prune => repo.delete(event.container_name),
+            ContainerEvent::Create => repo.add(event.container_name),
+            ContainerEvent::Destroy => repo.delete(event.container_name),
             _ => {}
         }
     }
