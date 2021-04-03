@@ -32,9 +32,9 @@ pub async fn task(
 
 fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
     match &conf.persistence {
-        Some(persistence) => {
+        Some(true) => {
             debug!("Creating sled repository");
-            Box::new(sled_repository::create(persistence.directory.to_owned()))
+            Box::new(sled_repository::create("docker2mqtt/db".to_owned()))
         }
         _ => {
             debug!("Creating no persistence repository");

@@ -17,7 +17,7 @@ pub struct Configuration {
     pub mqtt: Mqtt,
 
     #[serde(default)]
-    pub persistence: Option<Persistence>,
+    pub persistence: Option<bool>,
 }
 
 impl Configuration {
@@ -132,14 +132,46 @@ fn read_single_file(file: String) -> io::Result<String> {
     Ok(content)
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct Persistence {
-    #[serde(default = "Persistence::default_directory")]
-    pub directory: String,
-}
+#[cfg(test)]
+mod must {
+    #[test]
+    fn parse_defaults_for_minimal_config() {
+        // arrange
+        let buffer = "
+mqtt:
+  client_id: qwert
+  host: yuio
+  port: 1234";
 
-impl Persistence {
-    fn default_directory() -> String {
-        "/docker2mqtt/db/".to_owned()
+        // act
+        let config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
+
+        // assert
+        assert!(config.hassio.is_none());
+        assert!(config.persistence.is_none());
+
+        assert_eq!("INFO", config.logging.level);
+
+        assert_eq!(20, config.mqtt.connection_timeout);
+        assert_eq!(30, config.mqtt.keep_alive);
+        assert_eq!(0, config.mqtt.qos);
+    }
+
+    #[test]
+    fn parse_some_for_persistence() {
+        // arrange
+        let buffer = "
+persistence: true
+
+mqtt:
+  client_id: qwert
+  host: yuio
+  port: 1234";
+
+        // act
+        let config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
+
+        // assert
+        assert!(config.persistence.is_some());
     }
 }

@@ -35,8 +35,8 @@ services:
     restart: always
     volumes:
       - ~/docker2mqtt/config:/docker2mqtt/config
-      - ~/docker2mqtt/logs:/docker2mqtt/logs
       - ~/docker2mqtt/db:/docker2mqtt/db
+      - ~/docker2mqtt/logs:/docker2mqtt/logs
       - /var/run/docker.sock:/var/run/docker-host.sock
 ```
 
@@ -74,7 +74,7 @@ mqtt:
   # keep_alive: # default: 30
   # qos: # default: 0
 
-# persistence: # Enables persistence of state
-  # Changes the directory for database files, default: /docker2mqtt/db/
-  # directory: 
+# enables persistence of the current state to handle container changes while docker2mqtt
+#   is asleep. This ensures that e.g. home assistant sensors are up to date.
+# persistence: true
 ```
