@@ -35,7 +35,7 @@ services:
     restart: always
     volumes:
       - ~/docker2mqtt/config:/docker2mqtt/config
-      - ~/docker2mqtt/db:/docker2mqtt/db
+      - ~/docker2mqtt/data:/docker2mqtt/data
       - ~/docker2mqtt/logs:/docker2mqtt/logs
       - /var/run/docker.sock:/var/run/docker-host.sock
 ```

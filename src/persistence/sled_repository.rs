@@ -1,9 +1,8 @@
-use sled::{open, Db};
-use std::ops::Add;
+use sled::Db;
+use std::{ops::Add, str};
 use tracing::error;
 
 use crate::persistence::Repository;
-use std::str::from_utf8;
 
 pub struct SledRepository {
     database: Db,
@@ -11,7 +10,7 @@ pub struct SledRepository {
 
 pub fn create(directory: String) -> SledRepository {
     SledRepository {
-        database: open(directory.add("/docker.db")).unwrap(), //TODO Panic okay?
+        database: sled::open(directory.add("/docker.db")).unwrap(), //TODO Panic okay?
     }
 }
 
@@ -47,7 +46,7 @@ impl Repository for SledRepository {
 }
 
 fn convert_to_string(bytes: &[u8]) -> Option<String> {
-    match from_utf8(bytes) {
+    match str::from_utf8(bytes) {
         Ok(r) => Option::Some(r.to_owned()),
         Err(err) => {
             error!("error converting bytes to String: {}", err);

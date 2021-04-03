@@ -47,7 +47,7 @@ fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
     match &conf.persistence {
         Some(true) => {
             debug!("Creating sled repository");
-            Box::new(sled_repository::create("docker2mqtt/db".to_owned()))
+            Box::new(sled_repository::create("/docker2mqtt/data".to_owned()))
         }
         _ => {
             debug!("Creating no persistence repository");
