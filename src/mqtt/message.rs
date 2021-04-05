@@ -39,6 +39,7 @@ fn get_discovery(event: &Event, conf: &Configuration) -> Vec<Message> {
     let sensors = vec![
         EventType::CpuUsage(0.0),
         EventType::Image("".to_owned()),
+        EventType::Log("".to_owned()),
         EventType::MemoryUsage(0.0),
         EventType::State(ContainerEvent::Create),
     ];

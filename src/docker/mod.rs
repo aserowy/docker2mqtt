@@ -10,6 +10,7 @@ use crate::events::Event;
 mod client;
 mod events;
 mod initial;
+mod logs;
 mod stats;
 
 pub async fn task(
@@ -20,16 +21,27 @@ pub async fn task(
 
     let (init_sender, init_receiver) = broadcast::channel(500);
     let mut event_streams_stats = vec![init_sender.subscribe()];
+    let mut event_streams_logs = vec![init_sender.subscribe()];
+
     initial::source(init_sender, repo_init_receiver, docker_client.clone()).await;
 
     let (event_sender, event_receiver) = broadcast::channel(500);
     event_streams_stats.push(event_sender.subscribe());
+    event_streams_logs.push(event_sender.subscribe());
+
     events::source(event_sender, docker_client.clone()).await;
 
     let (stats_sender, stats_receiver) = broadcast::channel(500);
     stats::source(event_streams_stats, stats_sender, docker_client.clone()).await;
 
-    join_receivers(vec![init_receiver, event_receiver, stats_receiver], sender).await;
+    let (logs_sender, logs_receiver) = broadcast::channel(500);
+    logs::source(event_streams_logs, logs_sender, docker_client.clone()).await;
+
+    join_receivers(
+        vec![init_receiver, event_receiver, stats_receiver, logs_receiver],
+        sender,
+    )
+    .await;
 }
 
 async fn join_receivers(

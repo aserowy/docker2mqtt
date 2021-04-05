@@ -10,6 +10,7 @@ pub struct Event {
 pub enum EventType {
     CpuUsage(f64),
     Image(String),
+    Log(String),
     MemoryUsage(f64),
     State(ContainerEvent),
 }
@@ -19,6 +20,7 @@ impl fmt::Display for EventType {
         let value = match self {
             EventType::CpuUsage(_) => "cpu_usage",
             EventType::Image(_) => "image",
+            EventType::Log(_) => "logs",
             EventType::MemoryUsage(_) => "memory_usage",
             EventType::State(_) => "state",
         };
