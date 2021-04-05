@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use self::no_persistence_repository::NoPersistenceRepository;
 use crate::configuration::Configuration;
-use crate::docker::{ContainerEvent, Event, EventType};
+use crate::events::{ContainerEvent, Event, EventType};
 
 mod no_persistence_repository;
 mod sled_repository;

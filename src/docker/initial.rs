@@ -6,7 +6,7 @@ use tokio::{
 };
 use tracing::error;
 
-use super::{ContainerEvent, Event, EventType};
+use crate::events::{ContainerEvent, Event, EventType};
 
 pub async fn source(
     event_sender: broadcast::Sender<Event>,
@@ -134,10 +134,12 @@ async fn handle_orphaned_containers(
 
 #[cfg(test)]
 mod must {
-    use super::handle_orphaned_containers;
-    use crate::docker::{ContainerEvent, Event, EventType};
     use bollard::models::ContainerSummaryInner;
     use tokio::sync::{broadcast, oneshot};
+
+    use crate::events::{ContainerEvent, Event, EventType};
+
+    use super::handle_orphaned_containers;
 
     fn create_container_summary(name: String) -> ContainerSummaryInner {
         ContainerSummaryInner {

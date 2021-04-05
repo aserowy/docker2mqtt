@@ -3,6 +3,7 @@ use tokio::sync::{broadcast, oneshot};
 use crate::configuration::Configuration;
 
 mod configuration;
+mod events;
 mod docker;
 mod logging;
 mod mqtt;

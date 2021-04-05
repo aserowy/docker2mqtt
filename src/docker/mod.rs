@@ -1,11 +1,11 @@
-use std::fmt;
-
 use futures::future::join_all;
 use tokio::sync::{
     broadcast::{self, error::RecvError},
     oneshot,
 };
 use tracing::error;
+
+use crate::events::Event;
 
 mod client;
 mod events;
@@ -69,57 +69,13 @@ async fn handle_receiver(
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Event {
-    pub container_name: String,
-    pub event: EventType,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum EventType {
-    CpuUsage(f64),
-    Image(String),
-    MemoryUsage(f64),
-    State(ContainerEvent),
-}
-
-impl fmt::Display for EventType {
-    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let value = match self {
-            EventType::CpuUsage(_) => "cpu_usage",
-            EventType::Image(_) => "image",
-            EventType::MemoryUsage(_) => "memory_usage",
-            EventType::State(_) => "state",
-        };
-
-        write!(formatter, "{}", value)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum ContainerEvent {
-    Undefined,
-
-    Create,
-    Destroy,
-    Die,
-    Kill,
-    Pause,
-    Rename,
-    Restart,
-    Start,
-    Stop,
-    Unpause,
-    Prune,
-}
-
 #[cfg(test)]
 mod must {
     use std::time::Duration;
 
     use tokio::{sync::broadcast, task};
 
-    use super::{Event, EventType};
+    use crate::events::{Event, EventType};
 
     #[tokio::test]
     async fn stop_join_receivers_if_all_channels_closed() {

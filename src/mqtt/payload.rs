@@ -1,4 +1,4 @@
-use crate::docker::{ContainerEvent, Event, EventType};
+use crate::events::{ContainerEvent, Event, EventType};
 
 pub fn get(event: &Event) -> String {
     match &event.event {
