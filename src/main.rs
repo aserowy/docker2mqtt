@@ -18,10 +18,12 @@ async fn main() {
     let (mqtt_sender, mqtt_receiver) = broadcast::channel(100);
     let repo_receiver = mqtt_sender.subscribe();
 
-    persistence::init_task(repo_init_sender, &conf);
+    let repo = persistence::create_repository(&conf);
 
+    persistence::init_task(repo_init_sender, &*repo).await;
     docker::task(mqtt_sender, repo_init_receiver).await;
+    persistence::state_task(repo_receiver, repo).await;
 
+    // must be the last task to start event loop
     mqtt::task(mqtt_receiver, &conf).await;
-    persistence::state_task(repo_receiver, &conf).await;
 }
