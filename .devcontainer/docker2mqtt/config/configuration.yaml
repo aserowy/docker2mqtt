@@ -6,8 +6,6 @@ hassio:
 logging:
   level: DEBUG
 
-persistence: true
-
 mqtt:
   client_id: hostname
   # connection_timeout: # default: 20
@@ -17,3 +15,5 @@ mqtt:
   port: 1883
   qos: 1 # default: 0
   # username: # default: None
+
+persistence: true
