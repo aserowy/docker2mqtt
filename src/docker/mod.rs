@@ -1,9 +1,12 @@
 use std::fmt;
 
 use futures::future::join_all;
-use tokio::sync::{
-    broadcast::{self, error::RecvError},
-    oneshot,
+use tokio::{
+    sync::{
+        broadcast::{self, error::RecvError},
+        oneshot,
+    },
+    task,
 };
 use tracing::error;
 
@@ -36,12 +39,14 @@ async fn join_receivers(
     receivers: Vec<broadcast::Receiver<Event>>,
     sender: broadcast::Sender<Event>,
 ) {
-    let mut handles = vec![];
-    for receiver in receivers {
-        let sender_clone = sender.clone();
-        handles.push(handle_receiver(receiver, sender_clone));
-    }
-    join_all(handles).await;
+    task::spawn(async move {
+        let mut handles = vec![];
+        for receiver in receivers {
+            let sender_clone = sender.clone();
+            handles.push(handle_receiver(receiver, sender_clone));
+        }
+        join_all(handles).await;
+    });
 }
 
 async fn handle_receiver(
