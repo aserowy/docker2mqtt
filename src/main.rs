@@ -19,7 +19,7 @@ async fn main() {
 
     let repo = persistence::create_repository(&conf);
 
-    persistence::init_task(repo_init_sender, &repo).await;
+    persistence::init_task(repo_init_sender, &*repo).await;
     docker::task(mqtt_sender, repo_init_receiver).await;
     persistence::state_task(repo_receiver, repo).await;
 

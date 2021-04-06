@@ -33,7 +33,7 @@ pub fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
     }
 }
 
-pub async fn init_task(init_sender: oneshot::Sender<Vec<String>>, repo: &Box<dyn Repository>) {
+pub async fn init_task(init_sender: oneshot::Sender<Vec<String>>, repo: &dyn Repository) {
     let list = repo.list();
     task::spawn(async move {
         if let Err(err) = init_sender.send(list) {
