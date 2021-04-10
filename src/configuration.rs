@@ -9,15 +9,15 @@ use tracing::instrument;
 #[derive(Clone, Debug, Deserialize)]
 pub struct Configuration {
     #[serde(default)]
+    pub docker: Docker,
+
+    #[serde(default)]
     pub hassio: Option<Hassio>,
 
     #[serde(default)]
     pub logging: Logging,
 
     pub mqtt: Mqtt,
-
-    #[serde(default)]
-    pub persistence: Option<bool>,
 }
 
 impl Configuration {
@@ -29,6 +29,28 @@ impl Configuration {
         );
 
         serde_yaml::from_str(&content).unwrap()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Docker {
+    #[serde(default)]
+    pub persist_state: bool,
+
+    #[serde(default)]
+    pub stream_logs: bool,
+
+    #[serde(default)]
+    pub log_filter: Vec<String>,
+}
+
+impl Default for Docker {
+    fn default() -> Self {
+        Docker {
+            persist_state: false,
+            stream_logs: false,
+            log_filter: vec![]
+        }
     }
 }
 
@@ -144,11 +166,14 @@ mqtt:
   port: 1234";
 
         // act
-        let config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
+        let mut config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
 
         // assert
         assert!(config.hassio.is_none());
-        assert!(config.persistence.is_none());
+
+        assert_eq!(config.docker.persist_state, false);
+        assert_eq!(config.docker.stream_logs, false);
+        assert_eq!(config.docker.log_filter.pop(), None);
 
         assert_eq!("INFO", config.logging.level);
 
@@ -158,10 +183,15 @@ mqtt:
     }
 
     #[test]
-    fn parse_some_for_persistence() {
+    fn parse_given_values_for_config() {
         // arrange
         let buffer = "
-persistence: true
+docker:
+  persist_state: true
+  stream_logs: true
+  log_filter:
+    - test
+    - test02
 
 mqtt:
   client_id: qwert
@@ -169,9 +199,14 @@ mqtt:
   port: 1234";
 
         // act
-        let config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
+        let mut config: super::Configuration = serde_yaml::from_str(buffer).unwrap();
 
         // assert
-        assert!(config.persistence.is_some());
+        assert_eq!(config.docker.persist_state, true);
+        assert_eq!(config.docker.stream_logs, true);
+
+        assert_eq!(config.docker.log_filter.remove(0), "test".to_owned());
+        assert_eq!(config.docker.log_filter.remove(0), "test02".to_owned());
+        assert_eq!(config.docker.log_filter.pop(), None);
     }
 }
