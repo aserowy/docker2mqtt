@@ -205,8 +205,8 @@ mqtt:
         assert_eq!(config.docker.persist_state, true);
         assert_eq!(config.docker.stream_logs, true);
 
-        assert_eq!(config.docker.log_filter.remove(0), "test".to_owned());
-        assert_eq!(config.docker.log_filter.remove(0), "test02".to_owned());
+        assert_eq!(config.docker.log_filter.pop(), Some("test02".to_owned()));
+        assert_eq!(config.docker.log_filter.pop(), Some("test".to_owned()));
         assert_eq!(config.docker.log_filter.pop(), None);
     }
 }
