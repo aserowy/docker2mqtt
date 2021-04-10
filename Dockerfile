@@ -6,7 +6,15 @@ WORKDIR /docker2mqtt
 
 RUN apk add --no-cache musl-dev
 
-COPY ./ .
+COPY Cargo.toml .
+COPY Cargo.lock .
+
+RUN mkdir src \
+    && echo "//dummy" > src/lib.rs \
+    && cargo build --release \
+    && rm src/lib.rs
+
+COPY src src
 
 RUN cargo build --release
 
