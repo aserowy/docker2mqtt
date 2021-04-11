@@ -41,7 +41,7 @@ pub struct Docker {
     pub stream_logs: bool,
 
     #[serde(default)]
-    pub log_filter: Vec<String>,
+    pub stream_logs_filter: Vec<String>,
 }
 
 impl Default for Docker {
@@ -49,7 +49,7 @@ impl Default for Docker {
         Docker {
             persist_state: false,
             stream_logs: false,
-            log_filter: vec![]
+            stream_logs_filter: vec![]
         }
     }
 }
@@ -173,7 +173,7 @@ mqtt:
 
         assert_eq!(config.docker.persist_state, false);
         assert_eq!(config.docker.stream_logs, false);
-        assert_eq!(config.docker.log_filter.pop(), None);
+        assert_eq!(config.docker.stream_logs_filter.pop(), None);
 
         assert_eq!("INFO", config.logging.level);
 
@@ -189,7 +189,7 @@ mqtt:
 docker:
   persist_state: true
   stream_logs: true
-  log_filter:
+  stream_logs_filter:
     - test
     - test02
 
@@ -205,8 +205,8 @@ mqtt:
         assert_eq!(config.docker.persist_state, true);
         assert_eq!(config.docker.stream_logs, true);
 
-        assert_eq!(config.docker.log_filter.pop(), Some("test02".to_owned()));
-        assert_eq!(config.docker.log_filter.pop(), Some("test".to_owned()));
-        assert_eq!(config.docker.log_filter.pop(), None);
+        assert_eq!(config.docker.stream_logs_filter.pop(), Some("test02".to_owned()));
+        assert_eq!(config.docker.stream_logs_filter.pop(), Some("test".to_owned()));
+        assert_eq!(config.docker.stream_logs_filter.pop(), None);
     }
 }
