@@ -8,7 +8,7 @@ use tokio::{
 };
 use tracing::error;
 
-use crate::events::Event;
+use crate::{configuration::Configuration, events::Event};
 
 mod client;
 mod events;
@@ -19,6 +19,7 @@ mod stats;
 pub async fn task(
     sender: broadcast::Sender<Event>,
     repo_init_receiver: oneshot::Receiver<Vec<String>>,
+    conf: &Configuration,
 ) {
     let docker_client = client::new();
 
@@ -38,7 +39,7 @@ pub async fn task(
     stats::source(event_streams_stats, stats_sender, docker_client.clone()).await;
 
     let (logs_sender, logs_receiver) = broadcast::channel(500);
-    logs::source(event_streams_logs, logs_sender, docker_client.clone()).await;
+    logs::source(event_streams_logs, logs_sender, docker_client.clone(), conf).await;
 
     join_receivers(
         vec![init_receiver, event_receiver, stats_receiver, logs_receiver],

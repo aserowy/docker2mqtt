@@ -11,13 +11,21 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use crate::events::{ContainerEvent, Event, EventType};
+use crate::{
+    configuration::Configuration,
+    events::{ContainerEvent, Event, EventType},
+};
 
 pub async fn source(
     receivers: Vec<broadcast::Receiver<Event>>,
     event_sender: broadcast::Sender<Event>,
     client: Docker,
+    conf: &Configuration,
 ) {
+    if !conf.docker.stream_logs {
+        return;
+    }
+
     let (sender, mut receiver) = broadcast::channel(500);
     task::spawn(async move {
         let mut tasks = HashMap::new();
