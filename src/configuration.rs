@@ -41,6 +41,9 @@ pub struct Docker {
     pub stream_logs: bool,
 
     #[serde(default)]
+    pub stream_logs_container: Vec<String>,
+
+    #[serde(default)]
     pub stream_logs_filter: Vec<String>,
 }
 
@@ -48,7 +51,8 @@ impl Default for Docker {
     fn default() -> Self {
         Docker {
             persist_state: false,
-            stream_logs: false,
+            stream_logs: true,
+            stream_logs_container: vec![],
             stream_logs_filter: vec![],
         }
     }
@@ -172,7 +176,8 @@ mqtt:
         assert!(config.hassio.is_none());
 
         assert_eq!(config.docker.persist_state, false);
-        assert_eq!(config.docker.stream_logs, false);
+        assert_eq!(config.docker.stream_logs, true);
+        assert_eq!(config.docker.stream_logs_container.pop(), None);
         assert_eq!(config.docker.stream_logs_filter.pop(), None);
 
         assert_eq!("INFO", config.logging.level);
@@ -189,6 +194,9 @@ mqtt:
 docker:
   persist_state: true
   stream_logs: true
+  stream_logs_container:
+    - docker2mqtt
+    - borg
   stream_logs_filter:
     - test
     - test02
@@ -204,6 +212,16 @@ mqtt:
         // assert
         assert_eq!(config.docker.persist_state, true);
         assert_eq!(config.docker.stream_logs, true);
+
+        assert_eq!(
+            config.docker.stream_logs_container.pop(),
+            Some("borg".to_owned())
+        );
+        assert_eq!(
+            config.docker.stream_logs_container.pop(),
+            Some("docker2mqtt".to_owned())
+        );
+        assert_eq!(config.docker.stream_logs_container.pop(), None);
 
         assert_eq!(
             config.docker.stream_logs_filter.pop(),
