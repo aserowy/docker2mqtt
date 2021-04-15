@@ -49,7 +49,7 @@ impl Default for Docker {
         Docker {
             persist_state: false,
             stream_logs: false,
-            stream_logs_filter: vec![]
+            stream_logs_filter: vec![],
         }
     }
 }
@@ -205,8 +205,14 @@ mqtt:
         assert_eq!(config.docker.persist_state, true);
         assert_eq!(config.docker.stream_logs, true);
 
-        assert_eq!(config.docker.stream_logs_filter.pop(), Some("test02".to_owned()));
-        assert_eq!(config.docker.stream_logs_filter.pop(), Some("test".to_owned()));
+        assert_eq!(
+            config.docker.stream_logs_filter.pop(),
+            Some("test02".to_owned())
+        );
+        assert_eq!(
+            config.docker.stream_logs_filter.pop(),
+            Some("test".to_owned())
+        );
         assert_eq!(config.docker.stream_logs_filter.pop(), None);
     }
 }
