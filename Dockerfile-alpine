@@ -1,8 +1,10 @@
-FROM rust:slim-buster AS build
+FROM rust:alpine3.13 AS build
 
 RUN mkdir /docker2mqtt
 
 WORKDIR /docker2mqtt
+
+RUN apk add --no-cache musl-dev
 
 COPY Cargo.toml .
 COPY Cargo.lock .
@@ -16,7 +18,7 @@ COPY src src
 
 RUN cargo build --release
 
-FROM debian:buster-slim
+FROM alpine:3.13
 
 # configuration and persistance of docker2mqtt
 RUN mkdir -p /docker2mqtt/config
