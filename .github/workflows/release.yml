@@ -89,30 +89,22 @@ jobs:
         with:
           command: test
 
-  linux_armv7:
-    name: linux_armv7
+  docker:
+    name: docker
     runs-on: ubuntu-latest
     needs: [audit, check, lint, test]
     steps:
       - name: checkout
         uses: actions/checkout@v2
 
-      - name: setup_toolchain_armv7
-        uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
-          override: true
-          target: armv7-unknown-linux-musleabihf
-          toolchain: stable
-
-      - name: cargo_dependency_cache
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+#      - name: cargo_dependency_cache
+#        uses: actions/cache@v2
+#        with:
+#          path: |
+#            ~/.cargo/registry
+#            ~/.cargo/git
+#            target
+#          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: resolve_version_tag
         id: version_tag
@@ -122,13 +114,6 @@ jobs:
         uses: thomaseizinger/set-crate-version@0941739e872e465c18af1148eccf85b249b82016
         with:
           version: ${{ steps.version_tag.outputs.version-without-v }}
-
-      - name: cargo_build_armv7
-        uses: actions-rs/cargo@v1
-        with:
-          use-cross: true
-          command: build
-          args: --target armv7-unknown-linux-musleabihf --release
 
       - name: build_changelog
         id: changelog
@@ -157,9 +142,17 @@ jobs:
         with:
           version: latest
 
-      - name: docker_build
+      - name: docker_build_alpine_and_latest
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }} \
+            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine \
             --tag serowy/docker2mqtt:latest \
-            --platform linux/arm/v7 .
+            --platform linux/arm/v7 \
+            --file Dockerfile-alpine .
+
+      - name: docker_build_buster_slim
+        run: |
+          docker buildx build --push \
+            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-buster-slim \
+            --platform linux/arm/v7 \
+            --file Dockerfile-buster-slim .
