@@ -18,7 +18,7 @@ COPY src src
 
 RUN cargo build --release
 
-FROM alpinelinux/docker-cli:latest
+FROM alpine:3.13
 
 # configuration and persistance of docker2mqtt
 RUN mkdir -p /docker2mqtt/config
