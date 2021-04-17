@@ -1,4 +1,20 @@
-use bollard::models::ContainerSummaryInner;
+use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
+use tracing::error;
+
+pub async fn get(client: &Docker) -> Vec<ContainerSummaryInner> {
+    let filter = Some(ListContainersOptions::<String> {
+        all: true,
+        ..Default::default()
+    });
+
+    match client.list_containers(filter).await {
+        Ok(containers) => containers,
+        Err(e) => {
+            error!("could not resolve containers: {}", e);
+            vec![]
+        }
+    }
+}
 
 pub fn get_name(container: &ContainerSummaryInner) -> &str {
     let container_names = match &container.names {
@@ -21,4 +37,3 @@ fn split_first_char_remainder(s: &str) -> (&str, &str) {
         None => s.split_at(0),
     }
 }
-

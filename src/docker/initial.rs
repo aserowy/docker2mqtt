@@ -1,4 +1,4 @@
-use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
+use bollard::{models::ContainerSummaryInner, Docker};
 use std::collections::HashSet;
 use tokio::{
     sync::{broadcast, oneshot},
@@ -8,7 +8,7 @@ use tracing::error;
 
 use crate::events::{ContainerEvent, Event, EventType};
 
-use super::container::get_name;
+use super::container;
 
 pub async fn source(
     event_sender: broadcast::Sender<Event>,
@@ -16,18 +16,7 @@ pub async fn source(
     client: Docker,
 ) {
     task::spawn(async move {
-        let filter = Some(ListContainersOptions::<String> {
-            all: true,
-            ..Default::default()
-        });
-
-        let containers = match client.list_containers(filter).await {
-            Ok(containers) => containers,
-            Err(e) => {
-                error!("could not resolve containers: {}", e);
-                vec![]
-            }
-        };
+        let containers = container::get(&client).await;
 
         handle_orphaned_containers(&event_sender, repo_init_receiver, &containers).await;
 
@@ -41,7 +30,7 @@ pub async fn source(
 }
 
 fn get_events_by_container(container: ContainerSummaryInner) -> Vec<Event> {
-    let container_name = get_name(&container).to_owned();
+    let container_name = container::get_name(&container).to_owned();
 
     let mut events = vec![
         Event {
@@ -97,7 +86,7 @@ async fn handle_orphaned_containers(
 ) {
     let docker_container_names: HashSet<String> = containers
         .iter()
-        .map(|c| get_name(&c).to_owned())
+        .map(|c| container::get_name(&c).to_owned())
         .collect();
 
     repo_init_receiver
@@ -151,7 +140,8 @@ mod must {
             .map(|c| create_container_summary(c.to_owned()))
             .collect();
 
-        if let Err(e) = repo_init_sender.send(vec![String::from("second"), String::from("third")]) {
+        if let Err(e) = repo_init_sender.send(vec![String::from("second"), String::from("third")])
+        {
             panic!("error in test: {:?}", e)
         }
 
