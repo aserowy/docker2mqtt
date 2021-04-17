@@ -11,6 +11,7 @@ use tracing::error;
 use crate::{configuration::Configuration, events::Event};
 
 mod client;
+mod container;
 mod events;
 mod initial;
 mod logs;

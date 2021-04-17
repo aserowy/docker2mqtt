@@ -8,6 +8,8 @@ use tracing::error;
 
 use crate::events::{ContainerEvent, Event, EventType};
 
+use super::container::get_name;
+
 pub async fn source(
     event_sender: broadcast::Sender<Event>,
     repo_init_receiver: oneshot::Receiver<Vec<String>>,
@@ -39,7 +41,7 @@ pub async fn source(
 }
 
 fn get_events_by_container(container: ContainerSummaryInner) -> Vec<Event> {
-    let container_name = get_container_name(&container).to_owned();
+    let container_name = get_name(&container).to_owned();
 
     let mut events = vec![
         Event {
@@ -74,28 +76,6 @@ fn send_event(event: Event, event_sender: &broadcast::Sender<Event>) {
     }
 }
 
-fn get_container_name(container: &ContainerSummaryInner) -> &str {
-    let container_names = match &container.names {
-        Some(names) => names,
-        None => return "",
-    };
-
-    let container_name = &container_names[0];
-    let (first_char, remainder) = split_first_char_remainder(container_name);
-
-    match first_char {
-        "/" => remainder,
-        _ => container_name,
-    }
-}
-
-fn split_first_char_remainder(s: &str) -> (&str, &str) {
-    match s.chars().next() {
-        Some(c) => s.split_at(c.len_utf8()),
-        None => s.split_at(0),
-    }
-}
-
 fn get_state(container: &ContainerSummaryInner) -> ContainerEvent {
     match container.state.as_deref() {
         Some("created") => ContainerEvent::Create,
@@ -117,7 +97,7 @@ async fn handle_orphaned_containers(
 ) {
     let docker_container_names: HashSet<String> = containers
         .iter()
-        .map(|c| get_container_name(&c).to_owned())
+        .map(|c| get_name(&c).to_owned())
         .collect();
 
     repo_init_receiver
