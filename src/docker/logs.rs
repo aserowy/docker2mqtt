@@ -22,16 +22,24 @@ pub async fn source(
     client: Docker,
     conf: &Configuration,
 ) {
-    if !conf.docker.stream_logs {
+    let valid_container;
+    if let Some(result) = get_valid_log_targets(&client, conf).await {
+        valid_container = result;
+    } else {
         return;
     }
 
-    let (sender, mut receiver) = broadcast::channel(500);
+    let (sender, mut receiver) = broadcast::channel::<Event>(500);
     task::spawn(async move {
         let mut tasks = HashMap::new();
         loop {
             match receiver.recv().await {
-                Ok(event) => handle_event(event, &mut tasks, &client, &event_sender).await,
+                Ok(event) => {
+                    if valid_container.iter().all(|name| -> bool {name != &event.container_name}) {
+                        return;
+                    }
+                    handle_event(event, &mut tasks, &client, &event_sender).await;
+                },
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
@@ -42,6 +50,14 @@ pub async fn source(
     });
 
     super::join_receivers(receivers, sender).await;
+}
+
+async fn get_valid_log_targets(_client: &Docker, conf: &Configuration) -> Option<Vec<String>> {
+    if !conf.docker.stream_logs {
+        return None;
+    }
+
+    None
 }
 
 async fn handle_event(
