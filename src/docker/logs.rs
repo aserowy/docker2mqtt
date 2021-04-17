@@ -28,12 +28,15 @@ pub async fn source(
         return;
     }
 
+    let configuration = conf.clone();
     let (sender, mut receiver) = broadcast::channel::<Event>(500);
     task::spawn(async move {
         let mut tasks = HashMap::new();
         loop {
             match receiver.recv().await {
-                Ok(event) => handle_event(event, &mut tasks, &client, &event_sender).await,
+                Ok(event) => {
+                    handle_event(event, &mut tasks, &client, &event_sender, &configuration).await
+                }
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
@@ -51,10 +54,11 @@ async fn handle_event(
     tasks: &mut HashMap<String, JoinHandle<()>>,
     client: &Docker,
     event_sender: &broadcast::Sender<Event>,
+    conf: &Configuration,
 ) {
     match &event.event {
         EventType::State(ContainerEvent::Start) => {
-            if !is_target_valid(&event, client).await {
+            if !is_target_valid(&event, client, conf).await {
                 return;
             }
 
@@ -64,14 +68,14 @@ async fn handle_event(
             );
         }
         EventType::State(ContainerEvent::Stop) => {
-            if !is_target_valid(&event, client).await {
+            if !is_target_valid(&event, client, conf).await {
                 return;
             }
 
             stop_logs_stream(tasks, &event);
         }
         EventType::State(ContainerEvent::Die) => {
-            if !is_target_valid(&event, client).await {
+            if !is_target_valid(&event, client, conf).await {
                 return;
             }
 
@@ -81,21 +85,31 @@ async fn handle_event(
     }
 }
 
-async fn is_target_valid(event: &Event, client: &Docker) -> bool {
-    let result;
+async fn is_target_valid(event: &Event, client: &Docker, conf: &Configuration) -> bool {
+    let container;
     match container::get_by_name(client, &event.container_name).await {
-        Some(c) => result = c,
+        Some(c) => container = c,
         None => return false,
     }
 
     // docker2mqtt should not stream his own logs generating logs streaming his on logs gene..
-    if let Some(image) = result.image {
-        if image.starts_with("docker2mqtt") {
+    if let Some(image) = &container.image {
+        if image.contains("docker2mqtt") {
             return false;
         }
     }
 
-    true
+    let container_name = container::get_name(&container);
+    if conf
+        .docker
+        .stream_logs_container
+        .iter()
+        .any(|name| name.eq_ignore_ascii_case(container_name))
+    {
+        return true;
+    }
+
+    false
 }
 
 async fn start_logs_stream(

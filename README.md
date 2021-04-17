@@ -51,18 +51,20 @@ In the directory `~/docker2mqtt/config` the configuration of the service is then
   # stream_logs enables streams for container logs with mqtt. [default: true]
   # stream_logs: false
 
-  # stream_logs_container is a white list filter for container names/ids. [default: empty]
-  # IMPORTANT: do not enable logging for e.g. mosquitto or hassio because it can cause feedback loops!
+  # stream_logs_container is a white list filter for container names. [default: empty]
+  #
+  # IMPORTANT: Do not enable logging for e.g. mosquitto or hassio because it can cause feedback loops!
+  # Because of this, docker2mqtt will get removed automatically!
+  #
   # stream_logs_container:
-  #   - docker2mqtt
   #   - watchtower
   #   - borg
 
-  # stream_logs_filter is a case insensitive white list filter for streamed logs. [default: empty]
+  # stream_logs_filter is a regex powered white list filter for streamed logs. [default: empty]
   # stream_logs_filter:
   #   - error
   #   - test_word
-  #   - my name, surname
+  #   - .*
 
 # hassio:
   # discovery enables (true) or disables (false) discovery messages for home assistant
