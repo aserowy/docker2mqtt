@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
 use tracing::error;
 
@@ -12,6 +14,25 @@ pub async fn get(client: &Docker) -> Vec<ContainerSummaryInner> {
         Err(e) => {
             error!("could not resolve containers: {}", e);
             vec![]
+        }
+    }
+}
+
+pub async fn get_by_name(client: &Docker, name: &str) -> Option<ContainerSummaryInner> {
+    let mut name_filter = HashMap::new();
+    name_filter.insert("name".to_owned(), vec![name.to_owned()]);
+
+    let filter = Some(ListContainersOptions::<String> {
+        all: true,
+        filters: name_filter,
+        ..Default::default()
+    });
+
+    match client.list_containers(filter).await {
+        Ok(mut containers) => containers.pop(),
+        Err(e) => {
+            error!("could not resolve containers: {}", e);
+            None
         }
     }
 }

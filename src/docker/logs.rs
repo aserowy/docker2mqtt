@@ -16,16 +16,15 @@ use crate::{
     events::{ContainerEvent, Event, EventType},
 };
 
+use super::container;
+
 pub async fn source(
     receivers: Vec<broadcast::Receiver<Event>>,
     event_sender: broadcast::Sender<Event>,
     client: Docker,
     conf: &Configuration,
 ) {
-    let valid_container;
-    if let Some(result) = get_valid_log_targets(&client, conf).await {
-        valid_container = result;
-    } else {
+    if !conf.docker.stream_logs {
         return;
     }
 
@@ -34,12 +33,7 @@ pub async fn source(
         let mut tasks = HashMap::new();
         loop {
             match receiver.recv().await {
-                Ok(event) => {
-                    if valid_container.iter().all(|name| -> bool {name != &event.container_name}) {
-                        return;
-                    }
-                    handle_event(event, &mut tasks, &client, &event_sender).await;
-                },
+                Ok(event) => handle_event(event, &mut tasks, &client, &event_sender).await,
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
@@ -52,14 +46,6 @@ pub async fn source(
     super::join_receivers(receivers, sender).await;
 }
 
-async fn get_valid_log_targets(_client: &Docker, conf: &Configuration) -> Option<Vec<String>> {
-    if !conf.docker.stream_logs {
-        return None;
-    }
-
-    None
-}
-
 async fn handle_event(
     event: Event,
     tasks: &mut HashMap<String, JoinHandle<()>>,
@@ -68,19 +54,48 @@ async fn handle_event(
 ) {
     match &event.event {
         EventType::State(ContainerEvent::Start) => {
+            if !is_target_valid(&event, client).await {
+                return;
+            }
+
             tasks.insert(
                 event.container_name.to_owned(),
                 start_logs_stream(client.clone(), event.clone(), event_sender.clone()).await,
             );
         }
         EventType::State(ContainerEvent::Stop) => {
+            if !is_target_valid(&event, client).await {
+                return;
+            }
+
             stop_logs_stream(tasks, &event);
         }
         EventType::State(ContainerEvent::Die) => {
+            if !is_target_valid(&event, client).await {
+                return;
+            }
+
             stop_logs_stream(tasks, &event);
         }
         _ => {}
     }
+}
+
+async fn is_target_valid(event: &Event, client: &Docker) -> bool {
+    let result;
+    match container::get_by_name(client, &event.container_name).await {
+        Some(c) => result = c,
+        None => return false,
+    }
+
+    // docker2mqtt should not stream his own logs generating logs streaming his on logs gene..
+    if let Some(image) = result.image {
+        if image.starts_with("docker2mqtt") {
+            return false;
+        }
+    }
+
+    true
 }
 
 async fn start_logs_stream(
@@ -99,6 +114,7 @@ async fn start_logs_stream(
                 ..Default::default()
             }),
         );
+
         while let Some(result) = stream.next().await {
             match result {
                 Ok(logs) => send_log_events(&event, &logs, &sender),
