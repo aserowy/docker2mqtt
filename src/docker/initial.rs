@@ -107,7 +107,7 @@ async fn handle_orphaned_containers(
         .filter(|c| !docker_container_names.contains(c))
         .map(|c| Event {
             container_name: c,
-            event: EventType::State(ContainerEvent::Prune),
+            event: EventType::State(ContainerEvent::Destroy),
         })
         .for_each(|e| send_event(e, &event_sender));
 }
