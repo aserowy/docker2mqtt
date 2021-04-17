@@ -73,7 +73,7 @@ fn get_discovery_message(
     let payload = match discovery::payload(container_name, event_name, conf) {
         Ok(payload) => payload,
         Err(e) => {
-            warn!("could not resolve discovery topic: {:?}", e);
+            warn!("could not resolve discovery payload: {:?}", e);
             return None;
         }
     };
