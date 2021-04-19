@@ -54,7 +54,7 @@ In the directory `~/docker2mqtt/config` the configuration of the service is then
   # stream_logs_container is a white list filter for container names. [default: empty]
   #
   # IMPORTANT: Do not enable logging for e.g. mosquitto or hassio because it can cause feedback loops!
-  # Because of this, docker2mqtt will get removed automatically!
+  #   Because of this, docker2mqtt will get removed automatically!
   #
   # stream_logs_container:
   #   - watchtower

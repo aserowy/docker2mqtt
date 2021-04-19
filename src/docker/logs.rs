@@ -4,12 +4,14 @@ use bollard::{
     container::{LogOutput, LogsOptions},
     Docker,
 };
+use lazy_static::lazy_static;
+use regex::Regex;
 use tokio::{
     sync::broadcast::{self, error::RecvError},
     task::{self, JoinHandle},
 };
 use tokio_stream::StreamExt;
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::{
     configuration::Configuration,
@@ -28,15 +30,13 @@ pub async fn source(
         return;
     }
 
-    let configuration = conf.clone();
+    let conf = conf.clone();
     let (sender, mut receiver) = broadcast::channel::<Event>(500);
     task::spawn(async move {
         let mut tasks = HashMap::new();
         loop {
             match receiver.recv().await {
-                Ok(event) => {
-                    handle_event(event, &mut tasks, &client, &event_sender, &configuration).await
-                }
+                Ok(event) => handle_event(event, &mut tasks, &client, &event_sender, &conf).await,
                 Err(RecvError::Closed) => break,
                 Err(e) => {
                     error!("receive failed: {}", e);
@@ -64,7 +64,12 @@ async fn handle_event(
 
             tasks.insert(
                 event.container_name.to_owned(),
-                start_logs_stream(client.clone(), event.clone(), event_sender.clone()).await,
+                start_logs_stream(
+                    client.clone(),
+                    event.clone(),
+                    event_sender.clone(),
+                )
+                .await,
             );
         }
         EventType::State(ContainerEvent::Stop) => {
@@ -120,19 +125,24 @@ async fn start_logs_stream(
     task::spawn(async move {
         let mut stream = client.logs(
             &event.container_name,
-            Some(LogsOptions {
+            Some(LogsOptions::<String> {
                 follow: true,
+                stderr: true,
                 stdout: true,
-                stderr: false,
-                tail: "all".to_owned(),
+                // TODO persist time of last received logs and since then on startup
+                tail: 0.to_string(),
+                timestamps: true,
                 ..Default::default()
             }),
         );
 
         while let Some(result) = stream.next().await {
             match result {
-                Ok(logs) => send_log_events(&event, &logs, &sender),
-                Err(e) => error!("failed to receive valid stats: {}", e),
+                Ok(logs) if is_log_valid(&logs) => {
+                    send_log_events(&event, &logs, &sender);
+                }
+                Ok(_) => {}
+                Err(e) => warn!("failed to receive valid stats: {}", e),
             }
         }
     })
@@ -142,6 +152,33 @@ fn stop_logs_stream(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &E
     if let Some(handle) = tasks.remove(&event.container_name) {
         handle.abort()
     }
+}
+
+fn is_log_valid(logs: &LogOutput) -> bool {
+    lazy_static! {
+        static ref LOG_VALIDATORS: Vec<Regex> = get_log_validation_regexes();
+    }
+
+    let log = format!("{}", logs);
+    for rgx in LOG_VALIDATORS.iter() {
+        if rgx.is_match(&log) {
+            return true;
+        }
+    }
+    false
+}
+
+fn get_log_validation_regexes() -> Vec<Regex> {
+    let conf = Configuration::new();
+    let mut validators = vec![];
+    for rgx in conf.docker.stream_logs_filter.iter() {
+        match Regex::new(rgx) {
+            Ok(regex) => validators.push(regex),
+            Err(e) => warn!("creating log validator (regex) failed: {}", e),
+        }
+    }
+
+    validators
 }
 
 fn send_log_events(source: &Event, logs: &LogOutput, sender: &broadcast::Sender<Event>) {
