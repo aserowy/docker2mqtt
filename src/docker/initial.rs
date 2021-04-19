@@ -148,7 +148,7 @@ mod must {
 
         let expected = Event {
             container_name: "third".to_owned(),
-            event: EventType::State(ContainerEvent::Prune),
+            event: EventType::State(ContainerEvent::Destroy),
         };
         assert_eq!(expected, mqtt_receiver.recv().await.unwrap());
     }
