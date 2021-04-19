@@ -140,8 +140,7 @@ mod must {
             .map(|c| create_container_summary(c.to_owned()))
             .collect();
 
-        if let Err(e) = repo_init_sender.send(vec![String::from("second"), String::from("third")])
-        {
+        if let Err(e) = repo_init_sender.send(vec![String::from("second"), String::from("third")]) {
             panic!("error in test: {:?}", e)
         }
 

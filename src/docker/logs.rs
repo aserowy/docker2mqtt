@@ -64,12 +64,7 @@ async fn handle_event(
 
             tasks.insert(
                 event.container_name.to_owned(),
-                start_logs_stream(
-                    client.clone(),
-                    event.clone(),
-                    event_sender.clone(),
-                )
-                .await,
+                start_logs_stream(client.clone(), event.clone(), event_sender.clone()).await,
             );
         }
         EventType::State(ContainerEvent::Stop) => {
