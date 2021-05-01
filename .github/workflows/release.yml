@@ -5,20 +5,76 @@ on:
     tags: "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
+  changelog:
+    name: changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: build_changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v1
+        with:
+          configuration: ".github/release_notes_configuration.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: release
+        uses: ncipollo/release-action@v1
+        with:
+          body: ${{ steps.changelog.outputs.changelog }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   build:
     name: build
+    strategy:
+      matrix:
+        include:
+          - base_image: "alpine"
+            version: "3.13"
+            tag_as_latest: true
+            libc: "musleabihf"
+            arch_rust: "armv7"
+            platform: "linux/arm/v7"
+          - base_image: "alpine"
+            version: "3.13"
+            tag_as_latest: true
+            libc: "musl"
+            arch_rust: "aarch64"
+            platform: "linux/arm64/v8"
+          - base_image: "alpine"
+            version: "3.13"
+            tag_as_latest: true
+            libc: "musl"
+            arch_rust: "x86_64"
+            platform: "linux/amd64"
+          - base_image: "debian"
+            version: "buster-slim"
+            tag_as_latest: false
+            libc: "gnueabihf"
+            arch_rust: "armv7"
+            platform: "linux/arm/v7"
+          - base_image: "debian"
+            version: "buster-slim"
+            tag_as_latest: false
+            libc: "gnu"
+            arch_rust: "aarch64"
+            platform: "linux/arm64/v8"
+          - base_image: "debian"
+            version: "buster-slim"
+            tag_as_latest: false
+            libc: "gnu"
+            arch_rust: "x86_64"
+            platform: "linux/amd64"
     runs-on: ubuntu-latest
-    needs: [audit, check, lint, test]
     steps:
       - name: checkout
         uses: actions/checkout@v2
 
-      - name: setup_toolchain_armv7
+      - name: setup_toolchain
         uses: actions-rs/toolchain@v1
         with:
           components: rustfmt, clippy
           override: true
-          target: armv7-unknown-linux-musleabihf
+          target: ${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}
           toolchain: stable
 
       - name: cargo_dependency_cache
@@ -39,26 +95,12 @@ jobs:
         with:
           version: ${{ steps.version_tag.outputs.version-without-v }}
 
-      - name: cargo_build_armv7_musl
+      - name: cargo_build
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --target armv7-unknown-linux-musleabihf --release
-
-      - name: build_changelog
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v1
-        with:
-          configuration: ".github/release_notes_configuration.json"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: release
-        uses: ncipollo/release-action@v1
-        with:
-          body: ${{ steps.changelog.outputs.changelog }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --target ${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }} --release
 
       - name: docker_login
         run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
@@ -73,17 +115,23 @@ jobs:
         with:
           version: latest
 
-      - name: docker_build_alpine_and_latest
+      - name: docker_build_and_push_version
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine \
-            --tag serowy/docker2mqtt:latest \
-            --platform linux/arm/v7 \
-            --file Dockerfile-alpine .
+            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-${{ matrix.base_image }} \
+            --platform ${{ platform }} \
+            --file Dockerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
+            --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
+            .
 
-      - name: docker_build_buster_slim
+      - name: docker_build_and_push_latest
+        if: ${{ matrix.tag_as_latest }}
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-buster-slim \
-            --platform linux/arm/v7 \
-            --file Dockerfile-buster-slim .
+            --tag serowy/docker2mqtt:latest \
+            --platform ${{ platform }} \
+            --file Dockerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
+            --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
+            .
