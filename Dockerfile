@@ -1,6 +1,7 @@
-ARG SUB_DIR
 ARG BASE_IMAGE
 FROM $BASE_IMAGE
+
+ARG SUB_DIR
 
 # configuration and persistance of docker2mqtt
 RUN mkdir -p /docker2mqtt/config
