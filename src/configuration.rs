@@ -37,7 +37,7 @@ pub struct Docker {
     #[serde(default)]
     pub persist_state: bool,
 
-    #[serde(default)]
+    #[serde(default = "Docker::default_stream_logs")]
     pub stream_logs: bool,
 
     #[serde(default)]
@@ -55,6 +55,12 @@ impl Default for Docker {
             stream_logs_container: vec![],
             stream_logs_filter: vec![],
         }
+    }
+}
+
+impl Docker {
+    fn default_stream_logs() -> bool {
+        true
     }
 }
 
@@ -193,7 +199,6 @@ mqtt:
         let buffer = "
 docker:
   persist_state: true
-  stream_logs: true
   stream_logs_container:
     - docker2mqtt
     - borg
