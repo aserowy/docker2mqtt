@@ -119,7 +119,7 @@ jobs:
         run: |
           docker buildx build --push \
             --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-${{ matrix.base_image }} \
-            --platform ${{ platform }} \
+            --platform ${{ matrix.platform }} \
             --file Dockerfile \
             --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
             --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
@@ -130,7 +130,7 @@ jobs:
         run: |
           docker buildx build --push \
             --tag serowy/docker2mqtt:latest \
-            --platform ${{ platform }} \
+            --platform ${{ matrix.platform }} \
             --file Dockerfile \
             --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
             --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
