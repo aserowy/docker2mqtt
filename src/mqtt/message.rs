@@ -1,7 +1,9 @@
 use tracing::warn;
 
-use crate::configuration::Configuration;
-use crate::events::{ContainerEvent, Event, EventType};
+use crate::{
+    configuration::Configuration,
+    events::{ContainerEvent, Event, EventType},
+};
 
 use super::{availability, discovery, payload, topic};
 

@@ -9,8 +9,6 @@
   "extensions": [
     "gruntfuggly.todo-tree",
     "pascalsenn.keyboard-quickfix",
-    "eamodio.gitlens",
-    "mhutchie.git-graph",
     "esbenp.prettier-vscode",
     "vadimcn.vscode-lldb",
     "mutantdino.resourcemonitor",

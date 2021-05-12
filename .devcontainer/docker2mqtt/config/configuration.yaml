@@ -2,9 +2,9 @@ docker:
   persist_state: true
   # stream_logs: # default: true
   stream_logs_container:
-    - silly_brattain
+    - home-assistant
   stream_logs_filter:
-    - domain
+    - error
 
 hassio:
   discovery: true
