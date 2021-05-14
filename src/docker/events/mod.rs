@@ -5,7 +5,7 @@ use tokio::{sync::broadcast, task};
 use tokio_stream::{Stream, StreamExt};
 use tracing::error;
 
-use super::{ContainerEvent, Event, EventType};
+use crate::events::{ContainerEvent, Event, EventType};
 
 mod transition;
 
@@ -58,7 +58,7 @@ mod must {
     use tokio::{sync::broadcast, task};
     use tokio_stream::StreamExt;
 
-    use super::super::{Event, EventType};
+    use crate::events::{Event, EventType};
 
     #[test]
     fn filter_events_for_type_container_only() {

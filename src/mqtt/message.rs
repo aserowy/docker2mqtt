@@ -2,7 +2,7 @@ use tracing::warn;
 
 use crate::{
     configuration::Configuration,
-    docker::{ContainerEvent, Event, EventType},
+    events::{ContainerEvent, Event, EventType},
 };
 
 use super::{availability, discovery, payload, topic};
@@ -41,6 +41,7 @@ fn get_discovery(event: &Event, conf: &Configuration) -> Vec<Message> {
     let sensors = vec![
         EventType::CpuUsage(0.0),
         EventType::Image("".to_owned()),
+        EventType::Log("".to_owned()),
         EventType::MemoryUsage(0.0),
         EventType::State(ContainerEvent::Create),
     ];
@@ -74,7 +75,7 @@ fn get_discovery_message(
     let payload = match discovery::payload(container_name, event_name, conf) {
         Ok(payload) => payload,
         Err(e) => {
-            warn!("could not resolve discovery topic: {:?}", e);
+            warn!("could not resolve discovery payload: {:?}", e);
             return None;
         }
     };

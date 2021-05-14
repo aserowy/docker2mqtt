@@ -1,3 +1,11 @@
+docker:
+  persist_state: true
+  # stream_logs: # default: true
+  stream_logs_container:
+    - home-assistant
+  stream_logs_filter:
+    - error
+
 hassio:
   discovery: true
   # discovery_prefix: # default: homeassistant
@@ -15,5 +23,3 @@ mqtt:
   port: 1883
   qos: 1 # default: 0
   # username: # default: None
-
-persistence: true

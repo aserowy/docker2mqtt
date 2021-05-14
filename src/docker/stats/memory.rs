@@ -1,11 +1,18 @@
-use bollard::container::MemoryStats;
+use bollard::container::{MemoryStats, MemoryStatsStats};
+use tracing::warn;
 
 pub fn usage(stats: &MemoryStats) -> f64 {
     match (stats.usage, stats.stats, stats.limit) {
-        (Some(usage), Some(stats), Some(limit)) => {
-            let used_memory = usage - stats.cache;
-            (used_memory as f64 / limit as f64) * 100.0
-        }
+        (Some(usage), Some(stats), Some(limit)) => match stats {
+            MemoryStatsStats::V1(stats_v1) => {
+                let used_memory = usage - stats_v1.cache;
+                (used_memory as f64 / limit as f64) * 100.0
+            }
+            MemoryStatsStats::V2(_) => {
+                warn!("v2 cgroups are not supported for memory stats.");
+                0.0
+            }
+        },
         _ => 0.0,
     }
 }
@@ -13,7 +20,7 @@ pub fn usage(stats: &MemoryStats) -> f64 {
 #[cfg(test)]
 mod must {
     use crate::docker::stats::memory::usage;
-    use bollard::container::{MemoryStats, MemoryStatsStats};
+    use bollard::container::{MemoryStats, MemoryStatsStats, MemoryStatsStatsV1};
 
     fn create_memory_stats(
         stats: Option<MemoryStatsStats>,
@@ -35,7 +42,7 @@ mod must {
     }
 
     fn create_memory_stats_stats(cache: u64) -> MemoryStatsStats {
-        MemoryStatsStats {
+        MemoryStatsStats::V1(MemoryStatsStatsV1 {
             cache,
             dirty: 0,
             mapped_file: 0,
@@ -68,7 +75,7 @@ mod must {
             total_pgmajfault: 0,
             total_pgpgin: 0,
             hierarchical_memsw_limit: None,
-        }
+        })
     }
 
     const FLOAT_ERROR_MARGIN: f64 = 0.0099;

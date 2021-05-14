@@ -9,7 +9,7 @@ use tracing::{debug, error};
 
 use self::no_persistence_repository::NoPersistenceRepository;
 use crate::configuration::Configuration;
-use crate::docker::{ContainerEvent, Event, EventType};
+use crate::events::{ContainerEvent, Event, EventType};
 
 mod no_persistence_repository;
 mod sled_repository;
@@ -21,12 +21,12 @@ pub trait Repository: Send {
 }
 
 pub fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
-    match &conf.persistence {
-        Some(true) => {
+    match &conf.docker.stream_logs {
+        true => {
             debug!("Creating sled repository");
             Box::new(sled_repository::create("/docker2mqtt/data".to_owned()))
         }
-        _ => {
+        false => {
             debug!("Creating no persistence repository");
             Box::new(NoPersistenceRepository {})
         }

@@ -8,8 +8,7 @@
   "shutdownAction": "stopCompose",
   "extensions": [
     "gruntfuggly.todo-tree",
-    "eamodio.gitlens",
-    "mhutchie.git-graph",
+    "pascalsenn.keyboard-quickfix",
     "esbenp.prettier-vscode",
     "vadimcn.vscode-lldb",
     "mutantdino.resourcemonitor",
