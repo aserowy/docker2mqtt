@@ -43,6 +43,29 @@ services:
 In the directory `~/docker2mqtt/config` the configuration of the service is then done by `configuration.yaml`. Commented values are optional and are filled by corresponding defaults:
 
 ```yaml
+# docker:
+  # persist_state enables persistence of the current state to handle container changes while docker2mqtt
+  #   is asleep. This ensures that e.g. home assistant sensors are up to date. [default: false]
+  # persist_state: true
+
+  # stream_logs enables streams for container logs with mqtt. [default: true]
+  # stream_logs: false
+
+  # stream_logs_container is a white list filter for container names. [default: empty]
+  #
+  # IMPORTANT: Do not enable logging for e.g. mosquitto or hassio because it can cause feedback loops!
+  #   Because of this, docker2mqtt will get removed automatically!
+  #
+  # stream_logs_container:
+  #   - watchtower
+  #   - borg
+
+  # stream_logs_filter is a regex powered white list filter for streamed logs. [default: empty]
+  # stream_logs_filter:
+  #   - error
+  #   - test_word
+  #   - .*
+
 # hassio:
   # discovery enables (true) or disables (false) discovery messages for home assistant
   discovery: true
@@ -73,8 +96,4 @@ mqtt:
   # connection_timeout: # default: 20
   # keep_alive: # default: 30
   # qos: # default: 0
-
-# enables persistence of the current state to handle container changes while docker2mqtt
-#   is asleep. This ensures that e.g. home assistant sensors are up to date.
-# persistence: true
 ```

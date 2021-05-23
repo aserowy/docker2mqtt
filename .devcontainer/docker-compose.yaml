@@ -22,7 +22,7 @@ services:
   mosquitto:
     image: eclipse-mosquitto:latest
     container_name: mosquitto
-    restart: always
+    restart: unless-stopped
     ports:
       - "1883:1883"
       - "9001:9001"
@@ -33,7 +33,7 @@ services:
   home-assistant:
     image: homeassistant/home-assistant:stable
     container_name: home-assistant
-    restart: always
+    restart: unless-stopped
     depends_on:
       - mosquitto
     ports:

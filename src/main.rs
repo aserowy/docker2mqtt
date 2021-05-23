@@ -4,6 +4,7 @@ use crate::configuration::Configuration;
 
 mod configuration;
 mod docker;
+mod events;
 mod logging;
 mod mqtt;
 mod persistence;
@@ -20,7 +21,7 @@ async fn main() {
     let repo = persistence::create_repository(&conf);
 
     persistence::init_task(repo_init_sender, &*repo).await;
-    docker::task(mqtt_sender, repo_init_receiver).await;
+    docker::task(mqtt_sender, repo_init_receiver, &conf).await;
     persistence::state_task(repo_receiver, repo).await;
 
     // must be the last task to start event loop

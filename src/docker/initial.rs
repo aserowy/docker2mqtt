@@ -1,4 +1,4 @@
-use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
+use bollard::{models::ContainerSummaryInner, Docker};
 use std::collections::HashSet;
 use tokio::{
     sync::{broadcast, oneshot},
@@ -6,7 +6,9 @@ use tokio::{
 };
 use tracing::error;
 
-use super::{ContainerEvent, Event, EventType};
+use crate::events::{ContainerEvent, Event, EventType};
+
+use super::container;
 
 pub async fn source(
     event_sender: broadcast::Sender<Event>,
@@ -14,18 +16,7 @@ pub async fn source(
     client: Docker,
 ) {
     task::spawn(async move {
-        let filter = Some(ListContainersOptions::<String> {
-            all: true,
-            ..Default::default()
-        });
-
-        let containers = match client.list_containers(filter).await {
-            Ok(containers) => containers,
-            Err(e) => {
-                error!("could not resolve containers: {}", e);
-                vec![]
-            }
-        };
+        let containers = container::get(&client).await;
 
         handle_orphaned_containers(&event_sender, repo_init_receiver, &containers).await;
 
@@ -39,7 +30,7 @@ pub async fn source(
 }
 
 fn get_events_by_container(container: ContainerSummaryInner) -> Vec<Event> {
-    let container_name = get_container_name(&container).to_owned();
+    let container_name = container::get_name(&container).to_owned();
 
     let mut events = vec![
         Event {
@@ -74,28 +65,6 @@ fn send_event(event: Event, event_sender: &broadcast::Sender<Event>) {
     }
 }
 
-fn get_container_name(container: &ContainerSummaryInner) -> &str {
-    let container_names = match &container.names {
-        Some(names) => names,
-        None => return "",
-    };
-
-    let container_name = &container_names[0];
-    let (first_char, remainder) = split_first_char_remainder(container_name);
-
-    match first_char {
-        "/" => remainder,
-        _ => container_name,
-    }
-}
-
-fn split_first_char_remainder(s: &str) -> (&str, &str) {
-    match s.chars().next() {
-        Some(c) => s.split_at(c.len_utf8()),
-        None => s.split_at(0),
-    }
-}
-
 fn get_state(container: &ContainerSummaryInner) -> ContainerEvent {
     match container.state.as_deref() {
         Some("created") => ContainerEvent::Create,
@@ -117,7 +86,7 @@ async fn handle_orphaned_containers(
 ) {
     let docker_container_names: HashSet<String> = containers
         .iter()
-        .map(|c| get_container_name(&c).to_owned())
+        .map(|c| container::get_name(&c).to_owned())
         .collect();
 
     repo_init_receiver
@@ -127,17 +96,19 @@ async fn handle_orphaned_containers(
         .filter(|c| !docker_container_names.contains(c))
         .map(|c| Event {
             container_name: c,
-            event: EventType::State(ContainerEvent::Prune),
+            event: EventType::State(ContainerEvent::Destroy),
         })
         .for_each(|e| send_event(e, &event_sender));
 }
 
 #[cfg(test)]
 mod must {
-    use super::handle_orphaned_containers;
-    use crate::docker::{ContainerEvent, Event, EventType};
     use bollard::models::ContainerSummaryInner;
     use tokio::sync::{broadcast, oneshot};
+
+    use crate::events::{ContainerEvent, Event, EventType};
+
+    use super::handle_orphaned_containers;
 
     fn create_container_summary(name: String) -> ContainerSummaryInner {
         ContainerSummaryInner {
@@ -177,7 +148,7 @@ mod must {
 
         let expected = Event {
             container_name: "third".to_owned(),
-            event: EventType::State(ContainerEvent::Prune),
+            event: EventType::State(ContainerEvent::Destroy),
         };
         assert_eq!(expected, mqtt_receiver.recv().await.unwrap());
     }

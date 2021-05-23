@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::docker::ContainerEvent;
+use crate::events::ContainerEvent;
 
 #[derive(Clone, Debug)]
 pub enum Availability {

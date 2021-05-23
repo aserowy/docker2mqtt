@@ -4,7 +4,7 @@ use tokio::{
 };
 use tracing::{error, instrument};
 
-use crate::{configuration::Configuration, docker::Event};
+use crate::{configuration::Configuration, events::Event};
 
 use self::client::MqttClient;
 
