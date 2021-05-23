@@ -118,7 +118,7 @@ jobs:
       - name: docker_build_and_push_version
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-${{ matrix.base_image }} \
+            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-${{ matrix.base_image }}-${{ matrix.arch_rust }} \
             --platform ${{ matrix.platform }} \
             --file Dockerfile \
             --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
@@ -129,9 +129,73 @@ jobs:
         if: ${{ matrix.tag_as_latest }}
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:latest \
+            --tag serowy/docker2mqtt:latest-${{ matrix.arch_rust }} \
             --platform ${{ matrix.platform }} \
             --file Dockerfile \
             --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
             --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
             .
+
+  manifest:
+    name: manifest
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: resolve_version_tag
+        id: version_tag
+        uses: battila7/get-version-action@v2
+
+      - name: docker_login
+        run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
+
+      - name: create_manifest_latest
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:latest \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-x86_64
+
+      - name: create_manifest_alpine
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-x86_64
+
+      - name: create_manifest_latest_debian
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:latest-debian \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-x86_64
+
+      - name: create_manifest_debian
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-x86_64
+
+      - name: push_manifest_latest
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:latest
+
+      - name: push_manifest_alpine
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine
+
+      - name: push_manifest_latest_debian
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:latest-debian
+
+      - name: push_manifest_debian
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian
