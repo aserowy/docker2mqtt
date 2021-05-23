@@ -5,46 +5,65 @@ on:
     tags: "v[0-9]+.[0-9]+.[0-9]+"
 
 jobs:
-  audit:
-    name: audit
+  changelog:
+    name: changelog
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
-        uses: actions/checkout@v2
-
-      - name: setup_toolchain
-        uses: actions-rs/toolchain@v1
+      - name: build_changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v1
         with:
-          override: true
-          profile: minimal
-          toolchain: stable
+          configuration: ".github/release_notes_configuration.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: security_audit
-        uses: actions-rs/audit-check@v1
+      - name: release
+        uses: ncipollo/release-action@v1
         with:
+          body: ${{ steps.changelog.outputs.changelog }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  check:
-    name: check
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-
-      - name: setup_toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: cargo_check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-
-  lint:
-    name: lint
+  build:
+    name: build
+    strategy:
+      matrix:
+        include:
+          - base_image: "alpine"
+            version: "3.13"
+            tag_as_latest: true
+            libc: "musleabihf"
+            arch_rust: "armv7"
+            platform: "linux/arm/v7"
+          - base_image: "alpine"
+            version: "3.13"
+            tag_as_latest: true
+            libc: "musl"
+            arch_rust: "aarch64"
+            platform: "linux/arm64/v8"
+          - base_image: "alpine"
+            version: "3.13"
+            tag_as_latest: true
+            libc: "musl"
+            arch_rust: "x86_64"
+            platform: "linux/amd64"
+          - base_image: "debian"
+            version: "buster-slim"
+            tag_as_latest: false
+            libc: "gnueabihf"
+            arch_rust: "armv7"
+            platform: "linux/arm/v7"
+          - base_image: "debian"
+            version: "buster-slim"
+            tag_as_latest: false
+            libc: "gnu"
+            arch_rust: "aarch64"
+            platform: "linux/arm64/v8"
+          - base_image: "debian"
+            version: "buster-slim"
+            tag_as_latest: false
+            libc: "gnu"
+            arch_rust: "x86_64"
+            platform: "linux/amd64"
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -55,54 +74,7 @@ jobs:
         with:
           components: rustfmt, clippy
           override: true
-          profile: minimal
-          toolchain: stable
-
-      - name: cargo_fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-      - name: clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features
-
-  test:
-    name: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-
-      - name: setup_toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: cargo_check
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  linux_armv7:
-    name: linux_armv7
-    runs-on: ubuntu-latest
-    needs: [audit, check, lint, test]
-    steps:
-      - name: checkout
-        uses: actions/checkout@v2
-
-      - name: setup_toolchain_armv7
-        uses: actions-rs/toolchain@v1
-        with:
-          components: rustfmt, clippy
-          override: true
-          target: armv7-unknown-linux-musleabihf
+          target: ${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}
           toolchain: stable
 
       - name: cargo_dependency_cache
@@ -123,26 +95,12 @@ jobs:
         with:
           version: ${{ steps.version_tag.outputs.version-without-v }}
 
-      - name: cargo_build_armv7
+      - name: cargo_build
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: --target armv7-unknown-linux-musleabihf --release
-
-      - name: build_changelog
-        id: changelog
-        uses: mikepenz/release-changelog-builder-action@v1
-        with:
-          configuration: ".github/release_notes_configuration.json"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: release
-        uses: ncipollo/release-action@v1
-        with:
-          body: ${{ steps.changelog.outputs.changelog }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --target ${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }} --release
 
       - name: docker_login
         run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
@@ -157,9 +115,87 @@ jobs:
         with:
           version: latest
 
-      - name: docker_build
+      - name: docker_build_and_push_version
         run: |
           docker buildx build --push \
-            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }} \
-            --tag serowy/docker2mqtt:latest \
-            --platform linux/arm/v7 .
+            --tag serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-${{ matrix.base_image }}-${{ matrix.arch_rust }} \
+            --platform ${{ matrix.platform }} \
+            --file Dockerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
+            --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
+            .
+
+      - name: docker_build_and_push_latest
+        if: ${{ matrix.tag_as_latest }}
+        run: |
+          docker buildx build --push \
+            --tag serowy/docker2mqtt:latest-${{ matrix.arch_rust }} \
+            --platform ${{ matrix.platform }} \
+            --file Dockerfile \
+            --build-arg BASE_IMAGE=${{ matrix.base_image }}:${{ matrix.version }} \
+            --build-arg SUB_DIR=${{ matrix.arch_rust }}-unknown-linux-${{ matrix.libc }}/ \
+            .
+
+  manifest:
+    name: manifest
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: resolve_version_tag
+        id: version_tag
+        uses: battila7/get-version-action@v2
+
+      - name: docker_login
+        run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
+
+      - name: create_manifest_latest
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:latest \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-x86_64
+
+      - name: create_manifest_alpine
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine-x86_64
+
+      - name: create_manifest_latest_debian
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:latest-debian \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-x86_64
+
+      - name: create_manifest_debian
+        run: |
+          docker manifest create \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-armv7 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-aarch64 \
+          --amend serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian-x86_64
+
+      - name: push_manifest_latest
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:latest
+
+      - name: push_manifest_alpine
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-alpine
+
+      - name: push_manifest_latest_debian
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:latest-debian
+
+      - name: push_manifest_debian
+        run: |
+          docker manifest push \
+          serowy/docker2mqtt:${{ steps.version_tag.outputs.version }}-debian
