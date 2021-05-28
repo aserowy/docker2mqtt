@@ -10,6 +10,7 @@ use super::message::Message;
 #[derive(Clone, Debug)]
 pub struct MqttClient {
     client: AsyncClient,
+    conf: Configuration,
 }
 
 impl MqttClient {
@@ -29,15 +30,16 @@ impl MqttClient {
         set_credentials(conf, &mut options);
 
         let (client, eventloop) = AsyncClient::new(options, 100);
+        let configuration = conf.clone();
 
-        (MqttClient { client }, MqttLoop { eventloop })
+        (MqttClient { client, conf: configuration, }, MqttLoop { eventloop })
     }
 
     #[instrument(level = "debug")]
-    pub async fn send_message(&self, message: Message, conf: &Configuration) {
+    pub async fn send_message(&self, message: Message) {
         let tkn = &self
             .client
-            .publish(message.topic, get_qos(conf), true, message.payload)
+            .publish(message.topic, get_qos(&self.conf), true, message.payload)
             .await;
 
         if let Err(e) = tkn {
