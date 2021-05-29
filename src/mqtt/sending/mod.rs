@@ -1,5 +1,4 @@
 use tokio::sync::mpsc;
-use tracing::error;
 
 use crate::Configuration;
 
@@ -10,29 +9,18 @@ use super::{
 
 struct MqttActor {
     client: MqttClient,
-    receiver: mpsc::Receiver<MqttMessage>,
-}
-
-enum MqttMessage {
-    Send(Message),
+    receiver: mpsc::Receiver<Message>,
 }
 
 impl MqttActor {
-    async fn with(
-        receiver: mpsc::Receiver<MqttMessage>,
-        conf: &Configuration,
-    ) -> (Self, MqttLoop) {
+    async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) -> (Self, MqttLoop) {
         let (client, keep) = MqttClient::new(conf).await;
 
         (MqttActor { client, receiver }, keep)
     }
 
-    async fn handle(&mut self, message: MqttMessage) {
-        match message {
-            MqttMessage::Send(msg) => {
-                self.client.send_message(msg).await;
-            }
-        }
+    async fn handle(&mut self, message: Message) {
+        self.client.send_message(message).await;
     }
 }
 
@@ -43,27 +31,15 @@ async fn run_mqtt_actor(mut actor: MqttActor) {
 }
 
 #[derive(Clone, Debug)]
-pub struct MqttHandle {
-    sender: mpsc::Sender<MqttMessage>,
-}
+pub struct MqttReactor {}
 
-impl MqttHandle {
-    pub async fn with(conf: &Configuration) -> Self {
-        let (sender, receiver) = mpsc::channel(10);
+impl MqttReactor {
+    pub async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) -> Self {
         let (actor, keep) = MqttActor::with(receiver, conf).await;
 
         tokio::spawn(run_mqtt_actor(actor));
         tokio::spawn(keep.start_loop());
 
-        MqttHandle { sender }
-    }
-
-    pub async fn send(&self, message: Message) {
-        match self.sender.send(MqttMessage::Send(message)).await {
-            Ok(_) => {}
-            Err(e) => {
-                error!("message was not sent: {}", e)
-            }
-        }
+        MqttReactor {}
     }
 }
