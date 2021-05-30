@@ -22,6 +22,10 @@ docker2mqtt enables monitoring of your docker containers via mqtt. In addition, 
 
 This implementation is implemented in Rust. This keeps the image size small and creates an environment for long runtimes. docker2mqtt relies on the docker.sock to read out current states.
 
+## build
+
+docker2mqtt needs a minimum Rust version of `1.51` to build.
+
 ## configuration
 
 docker2mqtt is configured using yaml. The confiugation is then provided to the container via volumes. In a docker-compose.yaml, the container can be initialized as follows:
