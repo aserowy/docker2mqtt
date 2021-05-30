@@ -22,11 +22,11 @@ impl MqttActor {
     async fn handle(&mut self, message: Message) {
         self.client.send_message(message).await;
     }
-}
 
-async fn run_mqtt_actor(mut actor: MqttActor) {
-    while let Some(message) = actor.receiver.recv().await {
-        actor.handle(message).await;
+    async fn run(mut self) {
+        while let Some(message) = self.receiver.recv().await {
+            self.handle(message).await;
+        }
     }
 }
 
@@ -37,7 +37,7 @@ impl MqttReactor {
     pub async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) -> Self {
         let (actor, keep) = MqttActor::with(receiver, conf).await;
 
-        tokio::spawn(run_mqtt_actor(actor));
+        tokio::spawn(actor.run());
         tokio::spawn(keep.start_loop());
 
         MqttReactor {}
