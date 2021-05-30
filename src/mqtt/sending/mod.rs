@@ -30,16 +30,14 @@ impl MqttActor {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct MqttReactor {}
 
 impl MqttReactor {
-    pub async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) -> Self {
+    pub async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) {
         let (actor, keep) = MqttActor::with(receiver, conf).await;
 
         tokio::spawn(actor.run());
         tokio::spawn(keep.start_loop());
-
-        MqttReactor {}
     }
 }

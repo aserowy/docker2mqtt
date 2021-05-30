@@ -3,7 +3,7 @@ use tracing::{error, instrument};
 
 use crate::{configuration::Configuration, events::Event};
 
-use self::{message::Message, sending::MqttReactor};
+use self::{discovery::HassioReactor, message::Message, sending::MqttReactor};
 
 mod availability;
 mod client;
@@ -26,6 +26,8 @@ pub async fn task(mut receiver: Receiver<Event>, conf: &Configuration) {
             }
         }
     });
+
+    let discovery_reactor = HassioReactor::with();
 
     MqttReactor::with(message_receiver, &conf).await;
 }

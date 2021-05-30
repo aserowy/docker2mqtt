@@ -5,7 +5,7 @@ use crate::{
     mqtt::availability::Availability,
 };
 
-use super::topic;
+use super::super::topic;
 
 #[derive(Serialize)]
 pub struct HassioEvent {
