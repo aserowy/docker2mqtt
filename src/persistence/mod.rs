@@ -1,8 +1,5 @@
 use tokio::{
-    sync::{
-        broadcast::{self, error::RecvError},
-        oneshot,
-    },
+    sync::{mpsc, oneshot},
     task,
 };
 use tracing::{debug, error};
@@ -42,17 +39,10 @@ pub async fn init_task(init_sender: oneshot::Sender<Vec<String>>, repo: &dyn Rep
     });
 }
 
-pub async fn state_task(mut receiver: broadcast::Receiver<Event>, mut repo: Box<dyn Repository>) {
+pub async fn state_task(mut receiver: mpsc::Receiver<Event>, mut repo: Box<dyn Repository>) {
     task::spawn(async move {
-        loop {
-            match receiver.recv().await {
-                Ok(event) => dispatch_event(event, &mut repo),
-                Err(RecvError::Closed) => break,
-                Err(e) => {
-                    error!("receive failed: {}", e);
-                    continue;
-                }
-            }
+        while let Some(event) = receiver.recv().await {
+            dispatch_event(event, &mut repo);
         }
     });
 }
