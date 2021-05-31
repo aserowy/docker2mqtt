@@ -2,7 +2,7 @@ use futures::future::join_all;
 use tokio::{
     sync::{
         broadcast::{self, error::RecvError},
-        oneshot,
+        mpsc, oneshot,
     },
     task,
 };
@@ -18,10 +18,29 @@ mod logs;
 mod stats;
 
 pub async fn task(
-    sender: broadcast::Sender<Event>,
+    sender: mpsc::Sender<Event>,
     repo_init_receiver: oneshot::Receiver<Vec<String>>,
     conf: &Configuration,
 ) {
+    // FIX: workaround till reaktor rework is complete
+    let (broadcast_sender, mut receiver) = broadcast::channel(100);
+    task::spawn(async move {
+        loop {
+            match receiver.recv().await {
+                Ok(event) => {
+                    if let Err(e) = sender.send(event).await {
+                        error!("message was not sent: {}", e);
+                    }
+                }
+                Err(RecvError::Closed) => break,
+                Err(e) => {
+                    error!("receive failed: {}", e);
+                    continue;
+                }
+            }
+        }
+    });
+
     let docker_client = client::new();
 
     let (init_sender, init_receiver) = broadcast::channel(500);
@@ -44,7 +63,7 @@ pub async fn task(
 
     join_receivers(
         vec![init_receiver, event_receiver, stats_receiver, logs_receiver],
-        sender,
+        broadcast_sender,
     )
     .await;
 }

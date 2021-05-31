@@ -21,6 +21,7 @@ impl<T: Clone + Send + 'static> Multiplier<T> {
         task::spawn(async move {
             while let Some(message) = receiver.recv().await {
                 let sender_locked = sender_arc_clone.lock().await;
+                // TODO: rework to parallel sending
                 for sndr in sender_locked.iter() {
                     let msg = message.clone();
                     if let Err(e) = sndr.send(msg).await {
