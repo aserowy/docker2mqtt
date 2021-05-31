@@ -1,30 +1,26 @@
 use tokio::sync::mpsc;
 use tracing::error;
 
-use crate::{
-    events::{ContainerEvent, Event, EventType},
-    Configuration,
-};
+use crate::{events::Event, Configuration};
 
 use super::Message;
 
-mod content;
 mod message;
 mod payload;
 
-struct HassioActor {
+struct MappingActor {
     receiver: mpsc::Receiver<Event>,
     sender: mpsc::Sender<Message>,
     conf: Configuration,
 }
 
-impl HassioActor {
+impl MappingActor {
     fn with(
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Message>,
         conf: Configuration,
     ) -> Self {
-        HassioActor {
+        MappingActor {
             receiver,
             sender,
             conf,
@@ -32,21 +28,7 @@ impl HassioActor {
     }
 
     async fn handle(&mut self, event: Event) {
-        match &event.event {
-            EventType::State(ContainerEvent::Create) => {
-                self.send(message::for_create_event(&event, &self.conf))
-                    .await
-            }
-            EventType::State(ContainerEvent::Destroy) => {
-                self.send(message::for_destroy_event(&event, &self.conf))
-                    .await
-            }
-            _ => {}
-        }
-    }
-
-    async fn send(&mut self, messages: Vec<Message>) {
-        for message in messages.into_iter() {
+        for message in message::map(event, &self.conf).into_iter() {
             if let Err(e) = self.sender.send(message).await {
                 error!("message was not sent: {}", e);
             }
@@ -61,18 +43,18 @@ impl HassioActor {
 }
 
 #[derive(Debug)]
-pub struct HassioReactor {
+pub struct MappingReactor {
     pub receiver: mpsc::Receiver<Message>,
 }
 
-impl HassioReactor {
+impl MappingReactor {
     pub async fn with(receiver: mpsc::Receiver<Event>, conf: &Configuration) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);
-        let actor = HassioActor::with(receiver, sender, conf.clone());
+        let actor = MappingActor::with(receiver, sender, conf.clone());
 
         tokio::spawn(actor.run());
 
-        HassioReactor {
+        MappingReactor {
             receiver: actor_receiver,
         }
     }

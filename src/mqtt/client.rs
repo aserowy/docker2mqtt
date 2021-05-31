@@ -5,7 +5,7 @@ use tracing::{error, instrument, trace};
 
 use crate::configuration::Configuration;
 
-use super::message::Message;
+use super::Message;
 
 #[derive(Clone, Debug)]
 pub struct MqttClient {

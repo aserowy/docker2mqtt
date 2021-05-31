@@ -1,17 +1,10 @@
 use crate::{
     configuration::Configuration,
     events::{Event, EventType},
+    mqtt::{availability, topic, Message},
 };
 
-use super::{availability, payload, topic};
-
-#[derive(Debug)]
-pub struct Message {
-    pub topic: String,
-    pub payload: String,
-}
-
-pub fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
+pub fn map(event: Event, conf: &Configuration) -> Vec<Message> {
     let mut messages = vec![];
     if let EventType::State(container_event) = &event.event {
         messages.push(Message {
@@ -21,12 +14,10 @@ pub fn get_event_messages(event: Event, conf: &Configuration) -> Vec<Message> {
     }
 
     // TODO availability for sensors only between start->stop
-
     messages.push(Message {
         topic: topic::state(&event.container_name, &event.event.to_string(), conf),
-        payload: payload::get(&event),
+        payload: super::payload::get(&event),
     });
 
     messages
 }
-

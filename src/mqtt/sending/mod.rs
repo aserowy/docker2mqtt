@@ -4,7 +4,7 @@ use crate::Configuration;
 
 use super::{
     client::{MqttClient, MqttLoop},
-    message::Message,
+    Message,
 };
 
 struct MqttActor {
