@@ -8,6 +8,7 @@ mod events;
 mod logging;
 mod mqtt;
 mod persistence;
+mod reaktor;
 
 #[tokio::main]
 async fn main() {
