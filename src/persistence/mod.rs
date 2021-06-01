@@ -18,7 +18,7 @@ pub trait Repository: Send {
 }
 
 pub fn create_repository(conf: &Configuration) -> Box<dyn Repository> {
-    match &conf.docker.stream_logs {
+    match &conf.docker.persist_state {
         true => {
             debug!("Creating sled repository");
             Box::new(sled_repository::create("/docker2mqtt/data".to_owned()))
