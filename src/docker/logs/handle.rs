@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bollard::Docker;
-use tokio::{sync::broadcast, task::JoinHandle};
+use tokio::{sync::mpsc, task::JoinHandle};
 
 use crate::{
     configuration::Configuration,
@@ -14,7 +14,7 @@ pub async fn event(
     event: Event,
     tasks: &mut HashMap<String, JoinHandle<()>>,
     client: &Docker,
-    event_sender: &broadcast::Sender<Event>,
+    event_sender: &mpsc::Sender<Event>,
     conf: &Configuration,
 ) {
     match &event.event {

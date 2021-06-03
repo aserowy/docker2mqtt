@@ -1,44 +1,77 @@
 use std::collections::HashMap;
 
 use bollard::Docker;
+use tokio::{sync::mpsc, task::JoinHandle};
 
-use tokio::{
-    sync::broadcast::{self, error::RecvError},
-    task::{self},
-};
-use tracing::error;
-
-use crate::{configuration::Configuration, events::Event};
+use crate::{events::Event, Configuration};
 
 mod handle;
 mod stream;
 mod validate;
 
-pub async fn source(
-    receivers: Vec<broadcast::Receiver<Event>>,
-    event_sender: broadcast::Sender<Event>,
+struct LoggingActor {
+    receiver: mpsc::Receiver<Event>,
+    sender: mpsc::Sender<Event>,
+    tasks: HashMap<String, JoinHandle<()>>,
     client: Docker,
-    conf: &Configuration,
-) {
-    if !conf.docker.stream_logs {
-        return;
+    conf: Configuration,
+}
+
+impl LoggingActor {
+    fn with(
+        receiver: mpsc::Receiver<Event>,
+        sender: mpsc::Sender<Event>,
+        tasks: HashMap<String, JoinHandle<()>>,
+        client: Docker,
+        conf: Configuration,
+    ) -> Self {
+        LoggingActor {
+            receiver,
+            sender,
+            tasks,
+            client,
+            conf,
+        }
     }
 
-    let conf = conf.clone();
-    let (sender, mut receiver) = broadcast::channel::<Event>(500);
-    task::spawn(async move {
-        let mut tasks = HashMap::new();
-        loop {
-            match receiver.recv().await {
-                Ok(event) => handle::event(event, &mut tasks, &client, &event_sender, &conf).await,
-                Err(RecvError::Closed) => break,
-                Err(e) => {
-                    error!("receive failed: {}", e);
-                    continue;
-                }
-            }
-        }
-    });
+    async fn handle(&mut self, event: Event) {
+        handle::event(
+            event,
+            &mut self.tasks,
+            &self.client,
+            &self.sender,
+            &self.conf,
+        )
+        .await;
+    }
 
-    super::join_receivers(receivers, sender).await;
+    async fn run(mut self) {
+        while let Some(message) = self.receiver.recv().await {
+            self.handle(message).await;
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct LoggingReactor {
+    pub receiver: mpsc::Receiver<Event>,
+}
+
+impl LoggingReactor {
+    pub async fn with(
+        receiver: mpsc::Receiver<Event>,
+        client: Docker,
+        conf: &Configuration,
+    ) -> Self {
+        let (sender, actor_receiver) = mpsc::channel(50);
+        let actor = LoggingActor::with(receiver, sender, HashMap::new(), client, conf.clone());
+
+        if conf.docker.stream_logs {
+            tokio::spawn(actor.run());
+        }
+
+        LoggingReactor {
+            receiver: actor_receiver,
+        }
+    }
 }

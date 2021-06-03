@@ -36,7 +36,7 @@ pub async fn source(
         }
     });
 
-    super::join_receivers(receivers, sender).await;
+    // super::join_receivers(receivers, sender).await;
 }
 
 async fn handle_event(

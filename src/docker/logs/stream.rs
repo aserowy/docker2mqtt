@@ -3,7 +3,7 @@ use bollard::{
     Docker,
 };
 use tokio::{
-    sync::broadcast,
+    sync::mpsc,
     task::{self, JoinHandle},
 };
 use tokio_stream::StreamExt;
@@ -14,11 +14,7 @@ use crate::{
     events::{Event, EventType},
 };
 
-pub async fn start(
-    client: Docker,
-    event: Event,
-    sender: broadcast::Sender<Event>,
-) -> JoinHandle<()> {
+pub async fn start(client: Docker, event: Event, sender: mpsc::Sender<Event>) -> JoinHandle<()> {
     task::spawn(async move {
         let mut stream = client.logs(&event.container_name, Some(get_options()));
 
@@ -46,12 +42,10 @@ fn get_options() -> LogsOptions<String> {
     }
 }
 
-fn send_log_events(source: &Event, logs: &LogOutput, sender: &broadcast::Sender<Event>) {
-    match sender.send(get_log_event(source, logs)) {
-        Ok(_) => {}
-        Err(e) => {
-            error!("message was not sent: {}", e)
-        }
+async fn send_log_events(source: &Event, logs: &LogOutput, sender: &mpsc::Sender<Event>) {
+    let event = get_log_event(source, logs);
+    if let Err(e) = sender.send(event).await {
+        error!("message was not sent: {}", e);
     }
 }
 
