@@ -54,7 +54,7 @@ pub fn from_orphaned(
         .collect();
 
     return Box::new(move |cn| {
-        if !docker_container_names.contains(cn) {
+        if docker_container_names.contains(cn) {
             return None;
         }
 

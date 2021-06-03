@@ -21,7 +21,7 @@ pub async fn start(client: Docker, event: Event, sender: mpsc::Sender<Event>) ->
         while let Some(result) = stream.next().await {
             match result {
                 Ok(logs) if validate::log(&logs) => {
-                    send_log_events(&event, &logs, &sender);
+                    send_log_events(&event, &logs, &sender).await;
                 }
                 Ok(_) => {}
                 Err(e) => warn!("failed to receive valid stats: {}", e),
