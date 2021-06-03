@@ -28,7 +28,12 @@ pub fn payload(
 ) -> HassioResult<String> {
     let hassio = get_hassio(conf)?;
 
-    Ok(super::payload::create(container_name, event_name, conf, hassio))
+    Ok(super::payload::create(
+        container_name,
+        event_name,
+        conf,
+        hassio,
+    ))
 }
 
 // TODO: move check into message creation

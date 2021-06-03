@@ -32,7 +32,13 @@ impl MqttClient {
         let (client, eventloop) = AsyncClient::new(options, 100);
         let configuration = conf.clone();
 
-        (MqttClient { client, conf: configuration, }, MqttLoop { eventloop })
+        (
+            MqttClient {
+                client,
+                conf: configuration,
+            },
+            MqttLoop { eventloop },
+        )
     }
 
     #[instrument(level = "debug")]

@@ -1,6 +1,10 @@
 use tracing::warn;
 
-use crate::{configuration::Configuration, events::{ContainerEvent, Event, EventType}, mqtt::Message};
+use crate::{
+    configuration::Configuration,
+    events::{ContainerEvent, Event, EventType},
+    mqtt::Message,
+};
 
 pub fn for_create_event(event: &Event, conf: &Configuration) -> Vec<Message> {
     let mut result = vec![];
