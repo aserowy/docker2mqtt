@@ -4,7 +4,7 @@ use crate::{
     configuration::Configuration,
     docker::{initial::InitReactor, logs::LoggingReactor},
     events::Event,
-    reaktor::{reducer::Reducer, relay::Relay},
+    reaktor::{multiplier::Multiplier, reducer::Reducer, relay::Relay},
 };
 
 use self::events::EventReactor;
@@ -27,13 +27,17 @@ pub async fn task(
     let event_reactor = EventReactor::with(docker_client.clone()).await;
 
     let reducer = Reducer::with(vec![init_reactor.receiver, event_reactor.receiver]).await;
+    let multiplier = Multiplier::with(reducer.receiver).await;
 
     /*
     let (stats_sender, stats_receiver) = broadcast::channel(500);
     stats::source(event_streams_stats, stats_sender, docker_client.clone()).await;
         */
 
-    let logging_reactor = LoggingReactor::with(reducer.receiver, docker_client, conf).await;
+    let logging_reactor =
+        LoggingReactor::with(multiplier.clone().await.receiver, docker_client, conf).await;
 
-    Relay::with(logging_reactor.receiver, sender).await;
+    let reducer = Reducer::with(vec![multiplier.receiver, logging_reactor.receiver]).await;
+
+    Relay::with(reducer.receiver, sender).await;
 }
