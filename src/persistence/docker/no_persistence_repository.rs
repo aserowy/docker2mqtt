@@ -1,8 +1,8 @@
-use crate::persistence::Repository;
+use super::DockerRepository;
 
-pub struct NoPersistenceRepository {}
+pub struct NoPersistenceDockerRepository {}
 
-impl Repository for NoPersistenceRepository {
+impl DockerRepository for NoPersistenceDockerRepository {
     fn list(&self) -> Vec<String> {
         Vec::new()
     }

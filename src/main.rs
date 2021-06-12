@@ -20,11 +20,11 @@ async fn main() {
     let (mqtt_sender, mqtt_receiver) = mpsc::channel(100);
     let multiplier = Multiplier::with(mqtt_receiver).await;
 
-    let repo = persistence::create_repository(&conf);
+    let repo = persistence::docker::create_repository(&conf);
 
-    persistence::init_task(repo_init_sender, &*repo).await;
+    persistence::docker::init_task(repo_init_sender, &*repo).await;
     docker::task(mqtt_sender, repo_init_receiver, &conf).await;
-    persistence::state_task(multiplier.clone().await.receiver, repo).await;
+    persistence::docker::state_task(multiplier.clone().await.receiver, repo).await;
 
     // must be the last task to start event loop
     mqtt::task(multiplier.receiver, &conf).await;

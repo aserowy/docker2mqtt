@@ -2,19 +2,19 @@ use sled::Db;
 use std::{ops::Add, str};
 use tracing::error;
 
-use crate::persistence::Repository;
+use super::DockerRepository;
 
-pub struct SledRepository {
+pub struct SledDockerRepository {
     database: Db,
 }
 
-pub fn create(directory: String) -> SledRepository {
-    SledRepository {
+pub fn create(directory: String) -> SledDockerRepository {
+    SledDockerRepository {
         database: sled::open(directory.add("/docker.db")).unwrap(), //TODO Panic okay?
     }
 }
 
-impl Repository for SledRepository {
+impl DockerRepository for SledDockerRepository {
     fn list(&self) -> Vec<String> {
         let mut entries = Vec::new();
         for entry_result in self.database.iter() {
