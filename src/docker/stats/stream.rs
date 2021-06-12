@@ -1,21 +1,20 @@
-use bollard::{
-    container::{Stats, StatsOptions},
-    Docker,
-};
+use bollard::container::{Stats, StatsOptions};
 use tokio::{
     sync::mpsc,
     task::{self, JoinHandle},
 };
-use tokio_stream::StreamExt;
 use tracing::error;
 
 use crate::{
-    docker::stats::{cpu, memory},
+    docker::{
+        client::DockerHandle,
+        stats::{cpu, memory},
+    },
     events::{Event, EventType},
 };
 
 pub async fn start_stats_stream(
-    client: Docker,
+    client: DockerHandle,
     event: Event,
     sender: mpsc::Sender<Event>,
 ) -> JoinHandle<()> {

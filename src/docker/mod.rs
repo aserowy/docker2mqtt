@@ -1,11 +1,6 @@
 use tokio::sync::{mpsc, oneshot};
 
-use crate::{
-    configuration::Configuration,
-    docker::{initial::InitReactor, logs::LoggingReactor, stats::StatsReactor},
-    events::Event,
-    reaktor::{multiplier::Multiplier, reducer::Reducer, relay::Relay},
-};
+use crate::{configuration::Configuration, docker::{client::DockerHandle, initial::InitReactor, logs::LoggingReactor, stats::StatsReactor}, events::Event, reaktor::{multiplier::Multiplier, reducer::Reducer, relay::Relay}};
 
 use self::events::EventReactor;
 
@@ -21,7 +16,7 @@ pub async fn task(
     repo_init_receiver: oneshot::Receiver<Vec<String>>,
     conf: &Configuration,
 ) {
-    let docker_client = client::new();
+    let docker_client = DockerHandle::new().await;
 
     let init_reactor = InitReactor::new(repo_init_receiver, docker_client.clone()).await;
     let event_reactor = EventReactor::new(docker_client.clone()).await;

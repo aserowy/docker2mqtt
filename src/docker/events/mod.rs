@@ -1,21 +1,23 @@
 use std::collections::HashMap;
 
-use bollard::{errors::Error, models::SystemEventsResponse, system::EventsOptions, Docker};
+use bollard::{errors::Error, models::SystemEventsResponse, system::EventsOptions};
 use tokio::sync::mpsc;
 use tokio_stream::{Stream, StreamExt};
 use tracing::error;
 
 use crate::events::{ContainerEvent, Event, EventType};
 
+use super::client::DockerHandle;
+
 mod transition;
 
 struct EventActor {
     sender: mpsc::Sender<Event>,
-    client: Docker,
+    client: DockerHandle,
 }
 
 impl EventActor {
-    fn new(sender: mpsc::Sender<Event>, client: Docker) -> Self {
+    fn new(sender: mpsc::Sender<Event>, client: DockerHandle) -> Self {
         EventActor { sender, client }
     }
 
@@ -42,7 +44,7 @@ pub struct EventReactor {
 }
 
 impl EventReactor {
-    pub async fn new(client: Docker) -> Self {
+    pub async fn new(client: DockerHandle) -> Self {
         let (sender, receiver) = mpsc::channel(50);
         let actor = EventActor::new(sender, client);
 
@@ -53,7 +55,7 @@ impl EventReactor {
 }
 
 fn get_event_response_stream(
-    client: &Docker,
+    client: &DockerHandle,
 ) -> impl Stream<Item = Result<SystemEventsResponse, Error>> {
     client.events(Some(get_options()))
 }

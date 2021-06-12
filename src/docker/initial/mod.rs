@@ -1,20 +1,19 @@
-use bollard::Docker;
 use tokio::sync::{mpsc, oneshot};
 use tracing::error;
 
 use crate::events::{ContainerEvent, Event, EventType};
 
-use super::container;
+use super::{client::DockerHandle, container};
 
 mod events;
 
 struct InitActor {
     sender: mpsc::Sender<Event>,
-    client: Docker,
+    client: DockerHandle,
 }
 
 impl InitActor {
-    fn new(sender: mpsc::Sender<Event>, client: Docker) -> Self {
+    fn new(sender: mpsc::Sender<Event>, client: DockerHandle) -> Self {
         InitActor { sender, client }
     }
 
@@ -62,7 +61,7 @@ pub struct InitReactor {
 }
 
 impl InitReactor {
-    pub async fn new(startup: oneshot::Receiver<Vec<String>>, client: Docker) -> Self {
+    pub async fn new(startup: oneshot::Receiver<Vec<String>>, client: DockerHandle) -> Self {
         let (sender, receiver) = mpsc::channel(50);
 
         tokio::spawn(async move {

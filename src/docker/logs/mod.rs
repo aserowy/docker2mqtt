@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use bollard::Docker;
 use tokio::{sync::mpsc, task::JoinHandle};
 
 use crate::{events::Event, Configuration};
+
+use super::client::DockerHandle;
 
 mod handle;
 mod stream;
@@ -13,7 +14,7 @@ struct LoggingActor {
     receiver: mpsc::Receiver<Event>,
     sender: mpsc::Sender<Event>,
     tasks: HashMap<String, JoinHandle<()>>,
-    client: Docker,
+    client: DockerHandle,
     conf: Configuration,
 }
 
@@ -22,7 +23,7 @@ impl LoggingActor {
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Event>,
         tasks: HashMap<String, JoinHandle<()>>,
-        client: Docker,
+        client: DockerHandle,
         conf: Configuration,
     ) -> Self {
         LoggingActor {
@@ -60,7 +61,7 @@ pub struct LoggingReactor {
 impl LoggingReactor {
     pub async fn new(
         receiver: mpsc::Receiver<Event>,
-        client: Docker,
+        client: DockerHandle,
         conf: &Configuration,
     ) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);

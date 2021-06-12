@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use bollard::Docker;
 use tokio::{sync::mpsc, task::JoinHandle};
 
 use crate::events::Event;
+
+use super::client::DockerHandle;
 
 mod cpu;
 mod handle;
@@ -14,7 +15,7 @@ struct StatsActor {
     receiver: mpsc::Receiver<Event>,
     sender: mpsc::Sender<Event>,
     tasks: HashMap<String, JoinHandle<()>>,
-    client: Docker,
+    client: DockerHandle,
 }
 
 impl StatsActor {
@@ -22,7 +23,7 @@ impl StatsActor {
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Event>,
         tasks: HashMap<String, JoinHandle<()>>,
-        client: Docker,
+        client: DockerHandle,
     ) -> Self {
         StatsActor {
             receiver,
@@ -49,7 +50,7 @@ pub struct StatsReactor {
 }
 
 impl StatsReactor {
-    pub async fn new(receiver: mpsc::Receiver<Event>, client: Docker) -> Self {
+    pub async fn new(receiver: mpsc::Receiver<Event>, client: DockerHandle) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);
         let actor = StatsActor::new(receiver, sender, HashMap::new(), client);
 

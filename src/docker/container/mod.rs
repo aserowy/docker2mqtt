@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use bollard::{container::ListContainersOptions, models::ContainerSummaryInner, Docker};
+use bollard::{container::ListContainersOptions, models::ContainerSummaryInner};
 use tracing::error;
 
-pub async fn get(client: &Docker) -> Vec<ContainerSummaryInner> {
+use super::client::DockerHandle;
+
+pub async fn get(client: &DockerHandle) -> Vec<ContainerSummaryInner> {
     let filter = Some(ListContainersOptions::<String> {
         all: true,
         ..Default::default()
@@ -18,7 +20,7 @@ pub async fn get(client: &Docker) -> Vec<ContainerSummaryInner> {
     }
 }
 
-pub async fn get_by_name(client: &Docker, name: &str) -> Option<ContainerSummaryInner> {
+pub async fn get_by_name(client: &DockerHandle, name: &str) -> Option<ContainerSummaryInner> {
     let mut name_filter = HashMap::new();
     name_filter.insert("name".to_owned(), vec![name.to_owned()]);
 

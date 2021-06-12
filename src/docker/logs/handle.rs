@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use bollard::Docker;
 use tokio::{sync::mpsc, task::JoinHandle};
 
 use crate::{
     configuration::Configuration,
+    docker::client::DockerHandle,
     events::{ContainerEvent, Event, EventType},
 };
 
@@ -13,7 +13,7 @@ use super::{stream, validate};
 pub async fn event(
     event: Event,
     tasks: &mut HashMap<String, JoinHandle<()>>,
-    client: &Docker,
+    client: &DockerHandle,
     event_sender: &mpsc::Sender<Event>,
     conf: &Configuration,
 ) {

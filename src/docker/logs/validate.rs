@@ -1,11 +1,10 @@
-use bollard::{container::LogOutput, Docker};
 use lazy_static::lazy_static;
 use regex::Regex;
 use tracing::warn;
 
-use crate::{configuration::Configuration, docker::container, events::Event};
+use crate::{configuration::Configuration, docker::{client::DockerHandle, container}, events::Event};
 
-pub async fn target(event: &Event, client: &Docker, conf: &Configuration) -> bool {
+pub async fn target(event: &Event, client: &DockerHandle, conf: &Configuration) -> bool {
     let container;
     match container::get_by_name(client, &event.container_name).await {
         Some(c) => container = c,
@@ -32,14 +31,13 @@ pub async fn target(event: &Event, client: &Docker, conf: &Configuration) -> boo
     false
 }
 
-pub fn log(logs: &LogOutput) -> bool {
+pub fn log(logs: &str) -> bool {
     lazy_static! {
         static ref LOG_VALIDATORS: Vec<Regex> = get_log_validation_regexes();
     }
 
-    let log = format!("{}", logs);
     for rgx in LOG_VALIDATORS.iter() {
-        if rgx.is_match(&log) {
+        if rgx.is_match(logs) {
             return true;
         }
     }
