@@ -1,6 +1,13 @@
 use super::{LoggingRepository, UnixTimestamp};
 
+#[derive(Debug)]
 pub struct NoPersistenceLoggingRepository {}
+
+impl NoPersistenceLoggingRepository {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
 impl LoggingRepository for NoPersistenceLoggingRepository {
     fn set_last_logging_time(&mut self, _: UnixTimestamp) {}
@@ -8,4 +15,3 @@ impl LoggingRepository for NoPersistenceLoggingRepository {
         Option::None
     }
 }
-

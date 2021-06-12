@@ -5,18 +5,20 @@ use tracing::error;
 use crate::persistence::logging::{LoggingRepository, UnixTimestamp};
 use std::convert::TryInto;
 
+#[derive(Debug)]
 pub struct SledLoggingRepository {
     database: Db,
 }
 
-pub fn create(directory: String) -> SledLoggingRepository {
-    SledLoggingRepository {
-        database: sled::open(directory.add("/logging.db")).unwrap(),
+impl SledLoggingRepository {
+    pub fn new(directory: String) -> Self {
+        Self {
+            database: sled::open(directory.add("/logging.db")).unwrap(),
+        }
     }
 }
 
 impl LoggingRepository for SledLoggingRepository {
-
     fn set_last_logging_time(&mut self, time: UnixTimestamp) {
         let result = self
             .database
@@ -38,11 +40,13 @@ impl LoggingRepository for SledLoggingRepository {
 }
 
 fn read_from_ivec(ivec: IVec) -> Option<UnixTimestamp> {
-     match ivec.as_ref().try_into().map(|v: [u8; 8]| UnixTimestamp{time: i64::from_be_bytes(v)}) {
-         Ok(val) => Option::Some(val),
-         Err(err) => {
-             error!("error converting byte array to UnixTimestamp: {}", err);
-             Option::None
-         }
-     }
+    match ivec.as_ref().try_into().map(|v: [u8; 8]| UnixTimestamp {
+        time: i64::from_be_bytes(v),
+    }) {
+        Ok(val) => Option::Some(val),
+        Err(err) => {
+            error!("error converting byte array to UnixTimestamp: {}", err);
+            Option::None
+        }
+    }
 }

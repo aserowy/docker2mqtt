@@ -9,7 +9,10 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tracing::error;
 
-use crate::{docker::stats::{cpu, memory}, events::{Event, EventType}};
+use crate::{
+    docker::stats::{cpu, memory},
+    events::{Event, EventType},
+};
 
 pub async fn start_stats_stream(
     client: Docker,

@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
 use bollard::Docker;
-use tokio::{
-    sync::mpsc,
-    task::JoinHandle,
-};
+use tokio::{sync::mpsc, task::JoinHandle};
 
 use crate::events::Event;
 
@@ -36,13 +33,7 @@ impl StatsActor {
     }
 
     async fn handle(&mut self, event: Event) {
-        handle::event(
-            event,
-            &mut self.tasks,
-            &self.client,
-            &self.sender,
-        )
-        .await;
+        handle::event(event, &mut self.tasks, &self.client, &self.sender).await;
     }
 
     async fn run(mut self) {

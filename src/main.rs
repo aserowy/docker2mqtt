@@ -2,6 +2,7 @@ use reaktor::multiplier::Multiplier;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::configuration::Configuration;
+use crate::persistence::docker::DockerRepositoryHandle;
 
 mod configuration;
 mod docker;
@@ -20,11 +21,11 @@ async fn main() {
     let (mqtt_sender, mqtt_receiver) = mpsc::channel(100);
     let multiplier = Multiplier::new(mqtt_receiver).await;
 
-    let repo = persistence::docker::create_repository(&conf);
+    let docker_repo_handle = DockerRepositoryHandle::new(&conf);
 
-    persistence::docker::init_task(repo_init_sender, &*repo).await;
+    persistence::init_task(repo_init_sender, docker_repo_handle.clone()).await;
     docker::task(mqtt_sender, repo_init_receiver, &conf).await;
-    persistence::docker::state_task(multiplier.clone().await.receiver, repo).await;
+    persistence::state_task(multiplier.clone().await.receiver, docker_repo_handle).await;
 
     // must be the last task to start event loop
     mqtt::task(multiplier.receiver, &conf).await;

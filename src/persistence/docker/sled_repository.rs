@@ -4,13 +4,16 @@ use tracing::error;
 
 use super::DockerRepository;
 
+#[derive(Debug)]
 pub struct SledDockerRepository {
     database: Db,
 }
 
-pub fn create(directory: String) -> SledDockerRepository {
-    SledDockerRepository {
-        database: sled::open(directory.add("/docker.db")).unwrap(),
+impl SledDockerRepository {
+    pub fn new(directory: String) -> Self {
+        Self {
+            database: sled::open(directory.add("/docker.db")).unwrap(),
+        }
     }
 }
 

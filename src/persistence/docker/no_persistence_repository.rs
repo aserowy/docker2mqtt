@@ -1,6 +1,13 @@
 use super::DockerRepository;
 
+#[derive(Debug)]
 pub struct NoPersistenceDockerRepository {}
+
+impl NoPersistenceDockerRepository {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
 
 impl DockerRepository for NoPersistenceDockerRepository {
     fn list(&self) -> Vec<String> {
