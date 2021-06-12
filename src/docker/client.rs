@@ -1,4 +1,10 @@
-use bollard::{container::LogsOptions, Docker};
+use std::collections::HashMap;
+
+use bollard::{
+    container::{ListContainersOptions, LogsOptions},
+    models::ContainerSummaryInner,
+    Docker,
+};
 use tokio::{
     sync::{mpsc, oneshot},
     task,
@@ -14,6 +20,13 @@ struct DockerActor {
 
 #[derive(Debug)]
 pub enum DockerMessage {
+    GetContainerSummaries {
+        response: oneshot::Sender<Vec<ContainerSummaryInner>>,
+    },
+    GetContainerSummary {
+        container_name: String,
+        response: oneshot::Sender<Option<ContainerSummaryInner>>,
+    },
     GetLogStream {
         container_name: String,
         response: oneshot::Sender<mpsc::Receiver<String>>,
@@ -30,6 +43,13 @@ impl DockerActor {
 
     async fn handle(&mut self, message: DockerMessage) {
         match message {
+            DockerMessage::GetContainerSummaries { response } => {
+                handle_get_container_summaries(self.docker.clone(), response).await
+            }
+            DockerMessage::GetContainerSummary {
+                container_name,
+                response,
+            } => handle_get_container_summary(self.docker.clone(), container_name, response).await,
             DockerMessage::GetLogStream {
                 container_name,
                 response,
@@ -40,6 +60,53 @@ impl DockerActor {
     async fn run(mut self) {
         while let Some(message) = self.receiver.recv().await {
             self.handle(message).await;
+        }
+    }
+}
+
+async fn handle_get_container_summaries(
+    client: Docker,
+    response: oneshot::Sender<Vec<ContainerSummaryInner>>,
+) -> () {
+    let filter = Some(ListContainersOptions::<String> {
+        all: true,
+        ..Default::default()
+    });
+
+    match client.list_containers(filter).await {
+        Ok(containers) => {
+            if let Err(_) = response.send(containers) {
+                error!("receiver dropped");
+            }
+        }
+        Err(e) => {
+            error!("could not resolve containers: {}", e);
+        }
+    }
+}
+
+async fn handle_get_container_summary(
+    client: Docker,
+    container_name: String,
+    response: oneshot::Sender<Option<ContainerSummaryInner>>,
+) {
+    let mut name_filter = HashMap::new();
+    name_filter.insert("name".to_owned(), vec![container_name.to_owned()]);
+
+    let filter = Some(ListContainersOptions::<String> {
+        all: true,
+        filters: name_filter,
+        ..Default::default()
+    });
+
+    match client.list_containers(filter).await {
+        Ok(mut containers) => {
+            if let Err(_) = response.send(containers.pop()) {
+                error!("receiver dropped");
+            }
+        }
+        Err(e) => {
+            error!("could not resolve containers: {}", e);
         }
     }
 }

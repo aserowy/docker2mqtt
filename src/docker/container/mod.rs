@@ -1,39 +1,37 @@
-use std::collections::HashMap;
-
-use bollard::{container::ListContainersOptions, models::ContainerSummaryInner};
+use bollard::models::ContainerSummaryInner;
+use tokio::sync::oneshot;
 use tracing::error;
+
+use crate::docker::client::DockerMessage;
 
 use super::client::DockerHandle;
 
 pub async fn get(client: &DockerHandle) -> Vec<ContainerSummaryInner> {
-    let filter = Some(ListContainersOptions::<String> {
-        all: true,
-        ..Default::default()
-    });
+    let (response, receiver) = oneshot::channel();
+    let message = DockerMessage::GetContainerSummaries { response };
 
-    match client.list_containers(filter).await {
-        Ok(containers) => containers,
+    client.handle(message).await;
+    match receiver.await {
+        Ok(summary) => summary,
         Err(e) => {
-            error!("could not resolve containers: {}", e);
+            error!("failed receiving response for get log stream: {}", e);
             vec![]
         }
     }
 }
 
 pub async fn get_by_name(client: &DockerHandle, name: &str) -> Option<ContainerSummaryInner> {
-    let mut name_filter = HashMap::new();
-    name_filter.insert("name".to_owned(), vec![name.to_owned()]);
+    let (response, receiver) = oneshot::channel();
+    let message = DockerMessage::GetContainerSummary {
+        container_name: name.to_owned(),
+        response,
+    };
 
-    let filter = Some(ListContainersOptions::<String> {
-        all: true,
-        filters: name_filter,
-        ..Default::default()
-    });
-
-    match client.list_containers(filter).await {
-        Ok(mut containers) => containers.pop(),
+    client.handle(message).await;
+    match receiver.await {
+        Ok(summary) => summary,
         Err(e) => {
-            error!("could not resolve containers: {}", e);
+            error!("failed receiving response for get log stream: {}", e);
             None
         }
     }
