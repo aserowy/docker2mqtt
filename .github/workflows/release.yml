@@ -9,6 +9,9 @@ jobs:
     name: changelog
     runs-on: ubuntu-latest
     steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
       - name: build_changelog
         id: changelog
         uses: mikepenz/release-changelog-builder-action@v1
