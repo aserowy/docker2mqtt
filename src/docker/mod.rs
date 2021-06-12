@@ -2,7 +2,7 @@ use tokio::sync::{mpsc, oneshot};
 
 use crate::{
     configuration::Configuration,
-    docker::{initial::InitReactor, logs::LoggingReactor},
+    docker::{initial::InitReactor, logs::LoggingReactor, stats::StatsReactor},
     events::Event,
     reaktor::{multiplier::Multiplier, reducer::Reducer, relay::Relay},
 };
@@ -29,15 +29,18 @@ pub async fn task(
     let reducer = Reducer::with(vec![init_reactor.receiver, event_reactor.receiver]).await;
     let multiplier = Multiplier::with(reducer.receiver).await;
 
-    /*
-    let (stats_sender, stats_receiver) = broadcast::channel(500);
-    stats::source(event_streams_stats, stats_sender, docker_client.clone()).await;
-        */
+    let stats_reactor =
+        StatsReactor::with(multiplier.clone().await.receiver, docker_client.clone()).await;
 
     let logging_reactor =
         LoggingReactor::with(multiplier.clone().await.receiver, docker_client, conf).await;
 
-    let reducer = Reducer::with(vec![multiplier.receiver, logging_reactor.receiver]).await;
+    let reducer = Reducer::with(vec![
+        multiplier.receiver,
+        stats_reactor.receiver,
+        logging_reactor.receiver,
+    ])
+    .await;
 
     Relay::with(reducer.receiver, sender).await;
 }

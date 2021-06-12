@@ -5,7 +5,7 @@ use bollard::{
     Docker,
 };
 use tokio::{
-    sync::broadcast::{self, error::RecvError},
+    sync::mpsc,
     task::{self, JoinHandle},
 };
 use tokio_stream::StreamExt;
@@ -16,62 +16,82 @@ use crate::events::{ContainerEvent, Event, EventType};
 mod cpu;
 mod memory;
 
-pub async fn source(
-    receivers: Vec<broadcast::Receiver<Event>>,
-    event_sender: broadcast::Sender<Event>,
+struct StatsActor {
+    receiver: mpsc::Receiver<Event>,
+    sender: mpsc::Sender<Event>,
+    tasks: HashMap<String, JoinHandle<()>>,
     client: Docker,
-) {
-    let (sender, mut receiver) = broadcast::channel(500);
-    task::spawn(async move {
-        let mut tasks = HashMap::new();
-        loop {
-            match receiver.recv().await {
-                Ok(event) => handle_event(event, &mut tasks, &client, &event_sender).await,
-                Err(RecvError::Closed) => break,
-                Err(e) => {
-                    error!("receive failed: {}", e);
-                    continue;
-                }
-            }
-        }
-    });
-
-    // super::join_receivers(receivers, sender).await;
 }
 
-async fn handle_event(
-    event: Event,
-    tasks: &mut HashMap<String, JoinHandle<()>>,
-    client: &Docker,
-    event_sender: &broadcast::Sender<Event>,
-) {
-    match &event.event {
-        EventType::State(ContainerEvent::Start) => {
-            tasks.insert(
-                event.container_name.to_owned(),
-                start_stats_stream(client.clone(), event.clone(), event_sender.clone()).await,
-            );
+impl StatsActor {
+    fn with(
+        receiver: mpsc::Receiver<Event>,
+        sender: mpsc::Sender<Event>,
+        tasks: HashMap<String, JoinHandle<()>>,
+        client: Docker,
+    ) -> Self {
+        StatsActor {
+            receiver,
+            sender,
+            tasks,
+            client,
         }
-        EventType::State(ContainerEvent::Stop) => {
-            stop_stats_stream(tasks, &event);
+    }
+
+    async fn handle(&mut self, event: Event) {
+        match &event.event {
+            EventType::State(ContainerEvent::Start) => {
+                self.tasks.insert(
+                    event.container_name.to_owned(),
+                    start_stats_stream(self.client.clone(), event.clone(), self.sender.clone())
+                        .await,
+                );
+            }
+            EventType::State(ContainerEvent::Stop) => {
+                stop_stats_stream(&mut self.tasks, &event);
+            }
+            EventType::State(ContainerEvent::Die) => {
+                stop_stats_stream(&mut self.tasks, &event);
+            }
+            _ => {}
         }
-        EventType::State(ContainerEvent::Die) => {
-            stop_stats_stream(tasks, &event);
+    }
+
+    async fn run(mut self) {
+        while let Some(message) = self.receiver.recv().await {
+            self.handle(message).await;
         }
-        _ => {}
+    }
+}
+
+#[derive(Debug)]
+pub struct StatsReactor {
+    pub receiver: mpsc::Receiver<Event>,
+}
+
+impl StatsReactor {
+    pub async fn with(receiver: mpsc::Receiver<Event>, client: Docker) -> Self {
+        let (sender, actor_receiver) = mpsc::channel(50);
+        let actor = StatsActor::with(receiver, sender, HashMap::new(), client);
+
+        tokio::spawn(actor.run());
+
+        StatsReactor {
+            receiver: actor_receiver,
+        }
     }
 }
 
 async fn start_stats_stream(
     client: Docker,
     event: Event,
-    sender: broadcast::Sender<Event>,
+    sender: mpsc::Sender<Event>,
 ) -> JoinHandle<()> {
     task::spawn(async move {
         let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
         while let Some(result) = stream.next().await {
             match result {
-                Ok(stats) => send_stat_events(&event, &stats, &sender),
+                Ok(stats) => send_stat_events(&event, &stats, &sender).await,
                 Err(e) => error!("failed to receive valid stats: {}", e),
             }
         }
@@ -84,13 +104,10 @@ fn stop_stats_stream(tasks: &mut HashMap<String, task::JoinHandle<()>>, event: &
     }
 }
 
-fn send_stat_events(source: &Event, stats: &Stats, sender: &broadcast::Sender<Event>) {
+async fn send_stat_events(source: &Event, stats: &Stats, sender: &mpsc::Sender<Event>) {
     for event in get_stat_events(source, stats).into_iter() {
-        match sender.send(event) {
-            Ok(_) => {}
-            Err(e) => {
-                error!("message was not sent: {}", e)
-            }
+        if let Err(e) = sender.send(event).await {
+            error!("message was not sent: {}", e);
         }
     }
 }

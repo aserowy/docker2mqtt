@@ -53,7 +53,7 @@ pub fn from_orphaned(
         .map(|summary| container::get_name(&summary).to_owned())
         .collect();
 
-    return Box::new(move |cn| {
+    Box::new(move |cn| {
         if docker_container_names.contains(cn) {
             return None;
         }
@@ -62,7 +62,7 @@ pub fn from_orphaned(
             container_name: cn.to_owned(),
             event: EventType::State(ContainerEvent::Destroy),
         })
-    });
+    })
 }
 
 #[cfg(test)]
