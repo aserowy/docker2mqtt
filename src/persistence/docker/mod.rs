@@ -20,11 +20,11 @@ pub trait DockerRepository: Send {
 pub fn create_repository(conf: &Configuration) -> Box<dyn DockerRepository> {
     match &conf.docker.persist_state {
         true => {
-            debug!("Creating sled repository");
-            Box::new(sled_repository::create("/docker2mqtt/data".to_owned()))
+            debug!("Creating sled repository for docker");
+            Box::new(sled_repository::create(super::DATA_DIRECTORY.to_owned()))
         }
         false => {
-            debug!("Creating no persistence repository");
+            debug!("Creating no persistence repository for docker");
             Box::new(NoPersistenceDockerRepository {})
         }
     }

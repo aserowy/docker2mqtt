@@ -10,7 +10,7 @@ pub struct SledDockerRepository {
 
 pub fn create(directory: String) -> SledDockerRepository {
     SledDockerRepository {
-        database: sled::open(directory.add("/docker.db")).unwrap(), //TODO Panic okay?
+        database: sled::open(directory.add("/docker.db")).unwrap(),
     }
 }
 
