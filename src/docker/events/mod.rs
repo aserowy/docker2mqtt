@@ -15,7 +15,7 @@ struct EventActor {
 }
 
 impl EventActor {
-    fn with(sender: mpsc::Sender<Event>, client: Docker) -> Self {
+    fn new(sender: mpsc::Sender<Event>, client: Docker) -> Self {
         EventActor { sender, client }
     }
 
@@ -42,9 +42,9 @@ pub struct EventReactor {
 }
 
 impl EventReactor {
-    pub async fn with(client: Docker) -> Self {
+    pub async fn new(client: Docker) -> Self {
         let (sender, receiver) = mpsc::channel(50);
-        let actor = EventActor::with(sender, client);
+        let actor = EventActor::new(sender, client);
 
         tokio::spawn(actor.run());
 

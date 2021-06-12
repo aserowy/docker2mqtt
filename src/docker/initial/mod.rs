@@ -14,7 +14,7 @@ struct InitActor {
 }
 
 impl InitActor {
-    fn with(sender: mpsc::Sender<Event>, client: Docker) -> Self {
+    fn new(sender: mpsc::Sender<Event>, client: Docker) -> Self {
         InitActor { sender, client }
     }
 
@@ -62,11 +62,11 @@ pub struct InitReactor {
 }
 
 impl InitReactor {
-    pub async fn with(startup: oneshot::Receiver<Vec<String>>, client: Docker) -> Self {
+    pub async fn new(startup: oneshot::Receiver<Vec<String>>, client: Docker) -> Self {
         let (sender, receiver) = mpsc::channel(50);
 
         tokio::spawn(async move {
-            let actor = InitActor::with(sender, client);
+            let actor = InitActor::new(sender, client);
             let container_names = startup.await.unwrap_or_default();
 
             actor.run(container_names).await;

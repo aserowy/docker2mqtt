@@ -13,7 +13,7 @@ pub struct Multiplier<T: Send + 'static> {
 }
 
 impl<T: Clone + Send + 'static> Multiplier<T> {
-    pub async fn with(mut receiver: mpsc::Receiver<T>) -> Self {
+    pub async fn new(mut receiver: mpsc::Receiver<T>) -> Self {
         let (sender, multiplier_receiver) = mpsc::channel(50);
         let sender_arc = Arc::new(Mutex::new(vec![sender]));
 

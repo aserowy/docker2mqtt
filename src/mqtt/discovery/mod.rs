@@ -19,7 +19,7 @@ struct HassioActor {
 }
 
 impl HassioActor {
-    fn with(
+    fn new(
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Message>,
         conf: Configuration,
@@ -66,9 +66,9 @@ pub struct HassioReactor {
 }
 
 impl HassioReactor {
-    pub async fn with(receiver: mpsc::Receiver<Event>, conf: &Configuration) -> Self {
+    pub async fn new(receiver: mpsc::Receiver<Event>, conf: &Configuration) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);
-        let actor = HassioActor::with(receiver, sender, conf.clone());
+        let actor = HassioActor::new(receiver, sender, conf.clone());
 
         tokio::spawn(actor.run());
 

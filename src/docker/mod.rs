@@ -23,24 +23,24 @@ pub async fn task(
 ) {
     let docker_client = client::new();
 
-    let init_reactor = InitReactor::with(repo_init_receiver, docker_client.clone()).await;
-    let event_reactor = EventReactor::with(docker_client.clone()).await;
+    let init_reactor = InitReactor::new(repo_init_receiver, docker_client.clone()).await;
+    let event_reactor = EventReactor::new(docker_client.clone()).await;
 
-    let reducer = Reducer::with(vec![init_reactor.receiver, event_reactor.receiver]).await;
-    let multiplier = Multiplier::with(reducer.receiver).await;
+    let reducer = Reducer::new(vec![init_reactor.receiver, event_reactor.receiver]).await;
+    let multiplier = Multiplier::new(reducer.receiver).await;
 
     let stats_reactor =
-        StatsReactor::with(multiplier.clone().await.receiver, docker_client.clone()).await;
+        StatsReactor::new(multiplier.clone().await.receiver, docker_client.clone()).await;
 
     let logging_reactor =
-        LoggingReactor::with(multiplier.clone().await.receiver, docker_client, conf).await;
+        LoggingReactor::new(multiplier.clone().await.receiver, docker_client, conf).await;
 
-    let reducer = Reducer::with(vec![
+    let reducer = Reducer::new(vec![
         multiplier.receiver,
         stats_reactor.receiver,
         logging_reactor.receiver,
     ])
     .await;
 
-    Relay::with(reducer.receiver, sender).await;
+    Relay::new(reducer.receiver, sender).await;
 }

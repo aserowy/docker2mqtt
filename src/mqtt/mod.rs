@@ -23,10 +23,10 @@ pub struct Message {
 }
 
 pub async fn task(receiver: mpsc::Receiver<Event>, conf: &Configuration) {
-    let multiplier = Multiplier::with(receiver).await;
-    let mapping_reactor = MappingReactor::with(multiplier.clone().await.receiver, conf).await;
-    let discovery_reactor = HassioReactor::with(multiplier.receiver, conf).await;
+    let multiplier = Multiplier::new(receiver).await;
+    let mapping_reactor = MappingReactor::new(multiplier.clone().await.receiver, conf).await;
+    let discovery_reactor = HassioReactor::new(multiplier.receiver, conf).await;
 
-    let reducer = Reducer::with(vec![mapping_reactor.receiver, discovery_reactor.receiver]).await;
-    MqttReactor::with(reducer.receiver, &conf).await;
+    let reducer = Reducer::new(vec![mapping_reactor.receiver, discovery_reactor.receiver]).await;
+    MqttReactor::new(reducer.receiver, &conf).await;
 }

@@ -21,7 +21,7 @@ struct StatsActor {
 }
 
 impl StatsActor {
-    fn with(
+    fn new(
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Event>,
         tasks: HashMap<String, JoinHandle<()>>,
@@ -58,9 +58,9 @@ pub struct StatsReactor {
 }
 
 impl StatsReactor {
-    pub async fn with(receiver: mpsc::Receiver<Event>, client: Docker) -> Self {
+    pub async fn new(receiver: mpsc::Receiver<Event>, client: Docker) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);
-        let actor = StatsActor::with(receiver, sender, HashMap::new(), client);
+        let actor = StatsActor::new(receiver, sender, HashMap::new(), client);
 
         tokio::spawn(actor.run());
 

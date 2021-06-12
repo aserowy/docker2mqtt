@@ -18,7 +18,7 @@ struct LoggingActor {
 }
 
 impl LoggingActor {
-    fn with(
+    fn new(
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Event>,
         tasks: HashMap<String, JoinHandle<()>>,
@@ -58,13 +58,13 @@ pub struct LoggingReactor {
 }
 
 impl LoggingReactor {
-    pub async fn with(
+    pub async fn new(
         receiver: mpsc::Receiver<Event>,
         client: Docker,
         conf: &Configuration,
     ) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);
-        let actor = LoggingActor::with(receiver, sender, HashMap::new(), client, conf.clone());
+        let actor = LoggingActor::new(receiver, sender, HashMap::new(), client, conf.clone());
 
         if conf.docker.stream_logs {
             tokio::spawn(actor.run());

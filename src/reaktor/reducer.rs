@@ -7,7 +7,7 @@ pub struct Reducer<T: Send + 'static> {
 }
 
 impl<T: Send + 'static> Reducer<T> {
-    pub async fn with(receivers: Vec<mpsc::Receiver<T>>) -> Self {
+    pub async fn new(receivers: Vec<mpsc::Receiver<T>>) -> Self {
         let (sender, receiver) = mpsc::channel(50);
         for mut rcvr in receivers.into_iter() {
             let sndr = sender.clone();

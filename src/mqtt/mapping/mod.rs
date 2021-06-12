@@ -15,7 +15,7 @@ struct MappingActor {
 }
 
 impl MappingActor {
-    fn with(
+    fn new(
         receiver: mpsc::Receiver<Event>,
         sender: mpsc::Sender<Message>,
         conf: Configuration,
@@ -48,9 +48,9 @@ pub struct MappingReactor {
 }
 
 impl MappingReactor {
-    pub async fn with(receiver: mpsc::Receiver<Event>, conf: &Configuration) -> Self {
+    pub async fn new(receiver: mpsc::Receiver<Event>, conf: &Configuration) -> Self {
         let (sender, actor_receiver) = mpsc::channel(50);
-        let actor = MappingActor::with(receiver, sender, conf.clone());
+        let actor = MappingActor::new(receiver, sender, conf.clone());
 
         tokio::spawn(actor.run());
 

@@ -1,5 +1,21 @@
 use bollard::Docker;
+// use tokio::sync::mpsc;
 use tracing::{error, instrument};
+
+/* #[derive(Debug)]
+struct DockerActor {
+    receiver: mpsc::Receiver<DockerMessage>,
+}
+
+#[derive(Debug)]
+enum DockerMessage {
+}
+
+impl DockerActor {
+    fn new(receiver: mpsc::Receiver<DockerMessage>) -> Self {
+        Self { receiver }
+    }
+} */
 
 #[instrument(level = "debug")]
 pub fn new() -> Docker {

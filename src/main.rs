@@ -18,7 +18,7 @@ async fn main() {
 
     let (repo_init_sender, repo_init_receiver) = oneshot::channel();
     let (mqtt_sender, mqtt_receiver) = mpsc::channel(100);
-    let multiplier = Multiplier::with(mqtt_receiver).await;
+    let multiplier = Multiplier::new(mqtt_receiver).await;
 
     let repo = persistence::docker::create_repository(&conf);
 

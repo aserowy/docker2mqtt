@@ -13,7 +13,7 @@ struct MqttActor {
 }
 
 impl MqttActor {
-    async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) -> (Self, MqttLoop) {
+    async fn new(receiver: mpsc::Receiver<Message>, conf: &Configuration) -> (Self, MqttLoop) {
         let (client, keep) = MqttClient::new(conf).await;
 
         (MqttActor { client, receiver }, keep)
@@ -34,8 +34,8 @@ impl MqttActor {
 pub struct MqttReactor {}
 
 impl MqttReactor {
-    pub async fn with(receiver: mpsc::Receiver<Message>, conf: &Configuration) {
-        let (actor, keep) = MqttActor::with(receiver, conf).await;
+    pub async fn new(receiver: mpsc::Receiver<Message>, conf: &Configuration) {
+        let (actor, keep) = MqttActor::new(receiver, conf).await;
 
         tokio::spawn(actor.run());
         tokio::spawn(keep.start_loop());
