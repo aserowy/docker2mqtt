@@ -1,4 +1,4 @@
-use super::{LoggingRepository, UnixTimestamp};
+use crate::persistence::logging::{LoggingRepository, UnixTimestamp};
 
 #[derive(Debug)]
 pub struct NoPersistenceLoggingRepository {}

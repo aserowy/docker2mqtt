@@ -1,31 +1,58 @@
-mod no_persistence_repository;
-mod sled_repository;
+use tokio::sync::{mpsc, oneshot};
 
-use self::{
-    no_persistence_repository::NoPersistenceLoggingRepository,
-    sled_repository::SledLoggingRepository,
-};
 use crate::configuration::Configuration;
-use tracing::debug;
+use self::repository::LoggingRepository;
+
+mod repository;
 
 pub struct UnixTimestamp {
     pub time: i64,
 }
 
-pub trait LoggingRepository: Send {
-    fn set_last_logging_time(&mut self, time: UnixTimestamp);
-    fn get_last_logging_time(&self) -> Option<UnixTimestamp>;
+pub enum LoggingRepositoryMessage {
+    GetLastLoggingTime {
+        respond_to: oneshot::Sender<UnixTimestamp>
+    },
+    SetLastLoggingTime {
+        time: UnixTimestamp
+    }
 }
 
-pub fn create_repository(conf: &Configuration) -> Box<dyn LoggingRepository> {
-    match &conf.docker.stream_logs {
-        true => {
-            debug!("Creating sled repository for logging");
-            Box::new(SledLoggingRepository::new(super::DATA_DIRECTORY.to_owned()))
+#[derive(Clone)]
+pub struct LoggingRepositoryHandle {
+    sender: mpsc::Sender<LoggingRepositoryMessage>
+}
+
+impl LoggingRepositoryHandle {
+    pub fn new(conf: &Configuration) -> Self {
+        let (sender, receiver) = mpsc::channel(50);
+        let actor = LoggingRepositoryActor::new(conf, receiver);
+        tokio::spawn(actor.run());
+        Self { sender }
+    }
+}
+
+
+struct LoggingRepositoryActor {
+    repository: Box<dyn LoggingRepository>,
+    receiver: mpsc::Receiver<LoggingRepositoryMessage>
+}
+
+impl LoggingRepositoryActor {
+    fn new(conf: &Configuration, receiver: mpsc::Receiver<LoggingRepositoryMessage>) -> Self {
+        Self {
+            repository: repository::new(conf),
+            receiver
         }
-        false => {
-            debug!("Creating no persistence repository for logging");
-            Box::new(NoPersistenceLoggingRepository::new())
+    }
+
+    async fn run(mut self) {
+        while let Some(message) = self.receiver.recv().await {
+            self.handle(message);
         }
+    }
+
+    fn handle(&mut self, message: LoggingRepositoryMessage) {
+
     }
 }
