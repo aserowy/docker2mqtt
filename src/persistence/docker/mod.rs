@@ -7,7 +7,7 @@ use tracing::error;
 use crate::configuration::Configuration;
 use self::repository::DockerRepository;
 
-pub enum DockerRepositoryMessage {
+pub enum DockerDbMessage {
     GetAllDockerContainers {
         respond_to: oneshot::Sender<Vec<String>>,
     },
@@ -20,19 +20,19 @@ pub enum DockerRepositoryMessage {
 }
 
 #[derive(Clone)]
-pub struct DockerRepositoryHandle {
-    sender: mpsc::Sender<DockerRepositoryMessage>,
+pub struct DockerDbHandle {
+    sender: mpsc::Sender<DockerDbMessage>,
 }
 
-impl DockerRepositoryHandle {
+impl DockerDbHandle {
     pub fn new(conf: &Configuration) -> Self {
         let (sender, receiver) = mpsc::channel(50);
-        let actor = DockerRepositoryActor::new(conf, receiver);
+        let actor = DockerDbActor::new(conf, receiver);
         tokio::spawn(actor.run());
         Self { sender }
     }
 
-    pub async fn handle(&self, message: DockerRepositoryMessage) {
+    pub async fn handle(&self, message: DockerDbMessage) {
         self.sender
             .send(message)
             .await
@@ -41,13 +41,13 @@ impl DockerRepositoryHandle {
     }
 }
 
-struct DockerRepositoryActor {
+struct DockerDbActor {
     repository: Box<dyn DockerRepository>,
-    receiver: mpsc::Receiver<DockerRepositoryMessage>,
+    receiver: mpsc::Receiver<DockerDbMessage>,
 }
 
-impl DockerRepositoryActor {
-    fn new(conf: &Configuration, receiver: mpsc::Receiver<DockerRepositoryMessage>) -> Self {
+impl DockerDbActor {
+    fn new(conf: &Configuration, receiver: mpsc::Receiver<DockerDbMessage>) -> Self {
         Self {
             repository: repository::new(conf),
             receiver,
@@ -60,15 +60,15 @@ impl DockerRepositoryActor {
         }
     }
 
-    fn handle(&mut self, message: DockerRepositoryMessage) {
+    fn handle(&mut self, message: DockerDbMessage) {
         match message {
-            DockerRepositoryMessage::GetAllDockerContainers { respond_to } => {
+            DockerDbMessage::GetAllDockerContainers { respond_to } => {
                 if let Err(err) = respond_to.send(self.repository.list()) {
                     error!("Error sending docker container list: {:?}", err)
                 }
             }
-            DockerRepositoryMessage::DeleteDockerContainer { name } => self.repository.delete(name),
-            DockerRepositoryMessage::AddDockerContainer { name } => self.repository.add(name),
+            DockerDbMessage::DeleteDockerContainer { name } => self.repository.delete(name),
+            DockerDbMessage::AddDockerContainer { name } => self.repository.add(name),
         }
     }
 }

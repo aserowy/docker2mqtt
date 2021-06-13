@@ -11,7 +11,7 @@ pub struct UnixTimestamp {
     pub time: i64,
 }
 
-pub enum LoggingRepositoryMessage {
+pub enum LoggingDbMessage {
     GetLastLoggingTime {
         respond_to: oneshot::Sender<Option<UnixTimestamp>>
     },
@@ -21,19 +21,19 @@ pub enum LoggingRepositoryMessage {
 }
 
 #[derive(Clone)]
-pub struct LoggingRepositoryHandle {
-    sender: mpsc::Sender<LoggingRepositoryMessage>
+pub struct LoggingDbHandle {
+    sender: mpsc::Sender<LoggingDbMessage>
 }
 
-impl LoggingRepositoryHandle {
+impl LoggingDbHandle {
     pub fn new(conf: &Configuration) -> Self {
         let (sender, receiver) = mpsc::channel(50);
-        let actor = LoggingRepositoryActor::new(conf, receiver);
+        let actor = LoggingDbActor::new(conf, receiver);
         tokio::spawn(actor.run());
         Self { sender }
     }
 
-    pub async fn handle(&self, message: LoggingRepositoryMessage) {
+    pub async fn handle(&self, message: LoggingDbMessage) {
         self.sender
             .send(message)
             .await
@@ -42,13 +42,13 @@ impl LoggingRepositoryHandle {
     }
 }
 
-struct LoggingRepositoryActor {
+struct LoggingDbActor {
     repository: Box<dyn LoggingRepository>,
-    receiver: mpsc::Receiver<LoggingRepositoryMessage>
+    receiver: mpsc::Receiver<LoggingDbMessage>
 }
 
-impl LoggingRepositoryActor {
-    fn new(conf: &Configuration, receiver: mpsc::Receiver<LoggingRepositoryMessage>) -> Self {
+impl LoggingDbActor {
+    fn new(conf: &Configuration, receiver: mpsc::Receiver<LoggingDbMessage>) -> Self {
         Self {
             repository: repository::new(conf),
             receiver
@@ -61,14 +61,14 @@ impl LoggingRepositoryActor {
         }
     }
 
-    fn handle(&mut self, message: LoggingRepositoryMessage) {
+    fn handle(&mut self, message: LoggingDbMessage) {
         match message {
-            LoggingRepositoryMessage::GetLastLoggingTime { respond_to } => {
+            LoggingDbMessage::GetLastLoggingTime { respond_to } => {
                 if let Err(err) = respond_to.send(self.repository.get_last_logging_time()) {
                     error!("Error sending docker container list: {:?}", err)
                 }
             }
-            LoggingRepositoryMessage::SetLastLoggingTime { time } => self.repository.set_last_logging_time(time)
+            LoggingDbMessage::SetLastLoggingTime { time } => self.repository.set_last_logging_time(time)
         }
     }
 }
