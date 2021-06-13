@@ -1,19 +1,15 @@
-pub mod no_persistence_repository;
-pub mod sled_repository;
+mod repository;
 
 use tokio::{
     sync::{mpsc, oneshot}
 };
-use tracing::{debug, error};
-
-use self::{
-    no_persistence_repository::NoPersistenceDockerRepository, sled_repository::SledDockerRepository,
-};
+use tracing::error;
 use crate::configuration::Configuration;
+use self::repository::DockerRepository;
 
 pub enum DockerRepositoryMessage {
     GetAllDockerContainers {
-        response: oneshot::Sender<Vec<String>>,
+        respond_to: oneshot::Sender<Vec<String>>,
     },
     DeleteDockerContainer {
         name: String,
@@ -40,14 +36,9 @@ impl DockerRepositoryHandle {
         self.sender
             .send(message)
             .await
-            .map_err(|err| error!("Error sending DockerRepositoryMessage: {}", err));
+            .map_err(|err| error!("Error sending DockerRepositoryMessage: {}", err))
+            .ok();
     }
-}
-
-pub trait DockerRepository: Send {
-    fn list(&self) -> Vec<String>;
-    fn add(&mut self, container_name: String);
-    fn delete(&mut self, container_name: String);
 }
 
 struct DockerRepositoryActor {
@@ -58,7 +49,7 @@ struct DockerRepositoryActor {
 impl DockerRepositoryActor {
     fn new(conf: &Configuration, receiver: mpsc::Receiver<DockerRepositoryMessage>) -> Self {
         Self {
-            repository: create_repository(conf),
+            repository: repository::new(conf),
             receiver,
         }
     }
@@ -71,26 +62,13 @@ impl DockerRepositoryActor {
 
     fn handle(&mut self, message: DockerRepositoryMessage) {
         match message {
-            DockerRepositoryMessage::GetAllDockerContainers { response } => {
+            DockerRepositoryMessage::GetAllDockerContainers { respond_to: response } => {
                 if let Err(err) = response.send(self.repository.list()) {
                     error!("Error sending docker container list: {:?}", err)
                 }
             }
             DockerRepositoryMessage::DeleteDockerContainer { name } => self.repository.delete(name),
             DockerRepositoryMessage::AddDockerContainer { name } => self.repository.add(name),
-        }
-    }
-}
-
-pub fn create_repository(conf: &Configuration) -> Box<dyn DockerRepository> {
-    match &conf.docker.persist_state {
-        true => {
-            debug!("Creating sled repository for docker");
-            Box::new(SledDockerRepository::new(super::DATA_DIRECTORY.to_owned()))
-        }
-        false => {
-            debug!("Creating no persistence repository for docker");
-            Box::new(NoPersistenceDockerRepository::new())
         }
     }
 }

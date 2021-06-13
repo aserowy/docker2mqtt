@@ -12,7 +12,7 @@ const DATA_DIRECTORY: &str = "/docker2mqtt/data";
 
 pub async fn init_task(init_sender: oneshot::Sender<Vec<String>>, handle: DockerRepositoryHandle) {
     handle.handle(GetAllDockerContainers {
-        response: init_sender,
+        respond_to: init_sender,
     }).await
 }
 
