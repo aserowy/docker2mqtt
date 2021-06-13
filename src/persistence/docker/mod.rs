@@ -62,8 +62,8 @@ impl DockerRepositoryActor {
 
     fn handle(&mut self, message: DockerRepositoryMessage) {
         match message {
-            DockerRepositoryMessage::GetAllDockerContainers { respond_to: response } => {
-                if let Err(err) = response.send(self.repository.list()) {
+            DockerRepositoryMessage::GetAllDockerContainers { respond_to } => {
+                if let Err(err) = respond_to.send(self.repository.list()) {
                     error!("Error sending docker container list: {:?}", err)
                 }
             }
