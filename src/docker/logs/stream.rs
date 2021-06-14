@@ -48,6 +48,6 @@ async fn send_log_events(source: &Event, logs: &str, sender: &mpsc::Sender<Event
 fn get_log_event(event: &Event, logs: &str) -> Event {
     Event {
         container_name: event.container_name.to_owned(),
-        event: EventType::Log(format!("{}", logs)),
+        event: EventType::Log(logs.to_owned()),
     }
 }

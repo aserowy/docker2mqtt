@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-
-use bollard::{errors::Error, models::SystemEventsResponse, system::EventsOptions};
-use tokio::sync::mpsc;
-use tokio_stream::{Stream, StreamExt};
+use bollard::models::SystemEventsResponse;
+use tokio::sync::{mpsc, oneshot};
 use tracing::error;
 
-use crate::events::{ContainerEvent, Event, EventType};
+use crate::{
+    docker::client::DockerMessage,
+    events::{ContainerEvent, Event, EventType},
+};
 
 use super::client::DockerHandle;
 
@@ -21,8 +21,8 @@ impl EventActor {
         EventActor { sender, client }
     }
 
-    async fn handle(&mut self, mut stream: impl Stream<Item = Vec<Event>> + Unpin) {
-        while let Some(events) = stream.next().await {
+    async fn handle(&mut self, response: SystemEventsResponse) {
+        if let Some(events) = transition::to_events(response) {
             for event in events.into_iter() {
                 if let Err(e) = self.sender.send(event).await {
                     error!("message was not sent: {}", e);
@@ -32,9 +32,18 @@ impl EventActor {
     }
 
     async fn run(mut self) {
-        let stream = get_event_response_stream(&self.client).filter_map(transition::to_events);
+        let (response, receiver) = oneshot::channel();
+        let message = DockerMessage::GetEventStream { response };
 
-        self.handle(stream).await;
+        self.client.handle(message).await;
+        match receiver.await {
+            Ok(mut stream) => {
+                while let Some(result) = stream.recv().await {
+                    self.handle(result).await;
+                }
+            }
+            Err(e) => error!("failed receiving response for get log stream: {}", e),
+        }
     }
 }
 
@@ -51,22 +60,5 @@ impl EventReactor {
         tokio::spawn(actor.run());
 
         EventReactor { receiver }
-    }
-}
-
-fn get_event_response_stream(
-    client: &DockerHandle,
-) -> impl Stream<Item = Result<SystemEventsResponse, Error>> {
-    client.events(Some(get_options()))
-}
-
-fn get_options() -> EventsOptions<String> {
-    let mut query = HashMap::new();
-    query.insert("type".to_owned(), vec!["container".to_owned()]);
-
-    EventsOptions::<String> {
-        since: None,
-        until: None,
-        filters: query,
     }
 }

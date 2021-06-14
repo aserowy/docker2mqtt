@@ -1,13 +1,13 @@
-use bollard::container::{Stats, StatsOptions};
+use bollard::container::Stats;
 use tokio::{
-    sync::mpsc,
+    sync::{mpsc, oneshot},
     task::{self, JoinHandle},
 };
 use tracing::error;
 
 use crate::{
     docker::{
-        client::DockerHandle,
+        client::{DockerHandle, DockerMessage},
         stats::{cpu, memory},
     },
     events::{Event, EventType},
@@ -19,12 +19,20 @@ pub async fn start_stats_stream(
     sender: mpsc::Sender<Event>,
 ) -> JoinHandle<()> {
     task::spawn(async move {
-        let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
-        while let Some(result) = stream.next().await {
-            match result {
-                Ok(stats) => send_stat_events(&event, &stats, &sender).await,
-                Err(e) => error!("failed to receive valid stats: {}", e),
+        let (response, receiver) = oneshot::channel();
+        let message = DockerMessage::GetStatsStream {
+            container_name: event.container_name.to_owned(),
+            response,
+        };
+
+        client.handle(message).await;
+        match receiver.await {
+            Ok(mut stream) => {
+                while let Some(result) = stream.recv().await {
+                    send_stat_events(&event, &result, &sender).await;
+                }
             }
+            Err(e) => error!("failed receiving response for get log stream: {}", e),
         }
     })
 }

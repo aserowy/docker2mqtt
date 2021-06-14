@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
 use bollard::{
-    container::{ListContainersOptions, LogsOptions},
-    models::ContainerSummaryInner,
+    container::{ListContainersOptions, LogsOptions, Stats, StatsOptions},
+    models::{ContainerSummaryInner, SystemEventsResponse},
+    system::EventsOptions,
     Docker,
 };
 use tokio::{
@@ -20,6 +21,9 @@ struct DockerActor {
 
 #[derive(Debug)]
 pub enum DockerMessage {
+    GetEventStream {
+        response: oneshot::Sender<mpsc::Receiver<SystemEventsResponse>>,
+    },
     GetContainerSummaries {
         response: oneshot::Sender<Vec<ContainerSummaryInner>>,
     },
@@ -30,6 +34,10 @@ pub enum DockerMessage {
     GetLogStream {
         container_name: String,
         response: oneshot::Sender<mpsc::Receiver<String>>,
+    },
+    GetStatsStream {
+        container_name: String,
+        response: oneshot::Sender<mpsc::Receiver<Stats>>,
     },
 }
 
@@ -43,6 +51,9 @@ impl DockerActor {
 
     async fn handle(&mut self, message: DockerMessage) {
         match message {
+            DockerMessage::GetEventStream { response } => {
+                handle_get_event_stream(self.docker.clone(), response).await
+            }
             DockerMessage::GetContainerSummaries { response } => {
                 handle_get_container_summaries(self.docker.clone(), response).await
             }
@@ -54,6 +65,10 @@ impl DockerActor {
                 container_name,
                 response,
             } => handle_get_log_stream(self.docker.clone(), container_name, response).await,
+            DockerMessage::GetStatsStream {
+                container_name,
+                response,
+            } => handle_get_stats_stream(self.docker.clone(), container_name, response).await,
         }
     }
 
@@ -61,6 +76,43 @@ impl DockerActor {
         while let Some(message) = self.receiver.recv().await {
             self.handle(message).await;
         }
+    }
+}
+
+async fn handle_get_event_stream(
+    client: Docker,
+    response: oneshot::Sender<mpsc::Receiver<SystemEventsResponse>>,
+) -> () {
+    let (sender, receiver) = mpsc::channel(50);
+
+    task::spawn(async move {
+        let mut stream = client.events(Some(get_event_options()));
+
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok(event) => {
+                    if let Err(e) = sender.send(event).await {
+                        error!("message was not sent: {}", e);
+                    }
+                }
+                Err(e) => warn!("failed to receive event: {}", e),
+            }
+        }
+    });
+
+    if let Err(_) = response.send(receiver) {
+        error!("receiver dropped");
+    }
+}
+
+fn get_event_options() -> EventsOptions<String> {
+    let mut query = HashMap::new();
+    query.insert("type".to_owned(), vec!["container".to_owned()]);
+
+    EventsOptions::<String> {
+        since: None,
+        until: None,
+        filters: query,
     }
 }
 
@@ -119,7 +171,7 @@ async fn handle_get_log_stream(
     let (sender, receiver) = mpsc::channel(50);
 
     task::spawn(async move {
-        let mut stream = client.logs(&container_name, Some(get_options()));
+        let mut stream = client.logs(&container_name, Some(get_log_options()));
 
         while let Some(result) = stream.next().await {
             match result {
@@ -139,7 +191,35 @@ async fn handle_get_log_stream(
     }
 }
 
-fn get_options() -> LogsOptions<String> {
+async fn handle_get_stats_stream(
+    client: Docker,
+    container_name: String,
+    response: oneshot::Sender<mpsc::Receiver<Stats>>,
+) -> () {
+    let (sender, receiver) = mpsc::channel(50);
+
+    task::spawn(async move {
+        let mut stream = client.stats(&container_name, Some(StatsOptions { stream: true }));
+
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok(stats) => {
+                    if let Err(e) = sender.send(stats).await {
+                        error!("failed to send valid stats: {}", e);
+                    }
+                }
+                Ok(_) => {}
+                Err(e) => warn!("failed to receive valid stats: {}", e),
+            }
+        }
+    });
+
+    if let Err(_) = response.send(receiver) {
+        error!("receiver dropped");
+    }
+}
+
+fn get_log_options() -> LogsOptions<String> {
     LogsOptions::<String> {
         follow: true,
         stderr: true,

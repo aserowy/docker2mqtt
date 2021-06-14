@@ -1,25 +1,8 @@
-use bollard::{
-    errors::Error,
-    models::{SystemEventsResponse, SystemEventsResponseActor},
-};
-use tracing::error;
+use bollard::models::{SystemEventsResponse, SystemEventsResponseActor};
 
 use super::{ContainerEvent, Event, EventType};
 
-pub fn to_events(result: Result<SystemEventsResponse, Error>) -> Option<Vec<Event>> {
-    let response: SystemEventsResponse;
-    match result {
-        Ok(rspns) => response = rspns,
-        Err(error) => {
-            error!("could not resolve event from stream: {}", error);
-            return None;
-        }
-    }
-
-    get_events_by_response(response)
-}
-
-fn get_events_by_response(response: SystemEventsResponse) -> Option<Vec<Event>> {
+pub fn to_events(response: SystemEventsResponse) -> Option<Vec<Event>> {
     let state_event = get_state_event(&response);
 
     let mut messages = vec![];
@@ -91,7 +74,7 @@ mod must {
         };
 
         // act
-        let events = super::get_events_by_response(response);
+        let events = super::to_events(response);
 
         // assert
         assert!(events.is_none());
@@ -103,7 +86,7 @@ mod must {
         let response = create_response("random");
 
         // act
-        let events = super::get_events_by_response(response);
+        let events = super::to_events(response);
 
         // assert
         assert!(events.is_none());
@@ -135,7 +118,7 @@ mod must {
         for (response, result_count) in responses {
             assert_eq!(
                 result_count,
-                super::get_events_by_response(response)
+                super::to_events(response)
                     .unwrap()
                     .iter()
                     .count()
