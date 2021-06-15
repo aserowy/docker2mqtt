@@ -21,6 +21,6 @@ impl<T: Send + 'static> Reducer<T> {
             });
         }
 
-        Reducer { receiver }
+        Self { receiver }
     }
 }

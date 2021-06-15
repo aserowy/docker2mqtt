@@ -14,7 +14,7 @@ struct InitActor {
 
 impl InitActor {
     fn new(sender: mpsc::Sender<Event>, client: DockerHandle) -> Self {
-        InitActor { sender, client }
+        Self { sender, client }
     }
 
     async fn handle(&mut self, container_names: Vec<String>) {
@@ -71,6 +71,6 @@ impl InitReactor {
             actor.run(container_names).await;
         });
 
-        InitReactor { receiver }
+        Self { receiver }
     }
 }

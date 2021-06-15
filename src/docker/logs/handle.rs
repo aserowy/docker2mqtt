@@ -29,14 +29,14 @@ pub async fn event(
             );
         }
         EventType::State(ContainerEvent::Stop) => {
-            tasks
-                .remove(&event.container_name)
-                .and_then(|handle| Some(handle.abort()));
+            if let Some(handle) = tasks.remove(&event.container_name) {
+                handle.abort();
+            }
         }
         EventType::State(ContainerEvent::Die) => {
-            tasks
-                .remove(&event.container_name)
-                .and_then(|handle| Some(handle.abort()));
+            if let Some(handle) = tasks.remove(&event.container_name) {
+                handle.abort();
+            }
         }
         _ => {}
     }

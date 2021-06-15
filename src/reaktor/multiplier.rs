@@ -31,7 +31,7 @@ impl<T: Clone + Send + 'static> Multiplier<T> {
             }
         });
 
-        Multiplier {
+        Self {
             sender_arc,
             receiver: multiplier_receiver,
         }

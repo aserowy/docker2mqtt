@@ -25,7 +25,7 @@ impl StatsActor {
         tasks: HashMap<String, JoinHandle<()>>,
         client: DockerHandle,
     ) -> Self {
-        StatsActor {
+        Self {
             receiver,
             sender,
             tasks,
@@ -56,7 +56,7 @@ impl StatsReactor {
 
         tokio::spawn(actor.run());
 
-        StatsReactor {
+        Self {
             receiver: actor_receiver,
         }
     }

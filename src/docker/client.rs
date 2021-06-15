@@ -82,7 +82,7 @@ impl DockerActor {
 async fn handle_get_event_stream(
     client: Docker,
     response: oneshot::Sender<mpsc::Receiver<SystemEventsResponse>>,
-) -> () {
+) {
     let (sender, receiver) = mpsc::channel(50);
 
     task::spawn(async move {
@@ -100,7 +100,7 @@ async fn handle_get_event_stream(
         }
     });
 
-    if let Err(_) = response.send(receiver) {
+    if response.send(receiver).is_err() {
         error!("receiver dropped");
     }
 }
@@ -119,7 +119,7 @@ fn get_event_options() -> EventsOptions<String> {
 async fn handle_get_container_summaries(
     client: Docker,
     response: oneshot::Sender<Vec<ContainerSummaryInner>>,
-) -> () {
+) {
     let filter = Some(ListContainersOptions::<String> {
         all: true,
         ..Default::default()
@@ -127,7 +127,7 @@ async fn handle_get_container_summaries(
 
     match client.list_containers(filter).await {
         Ok(containers) => {
-            if let Err(_) = response.send(containers) {
+            if response.send(containers).is_err() {
                 error!("receiver dropped");
             }
         }
@@ -153,7 +153,7 @@ async fn handle_get_container_summary(
 
     match client.list_containers(filter).await {
         Ok(mut containers) => {
-            if let Err(_) = response.send(containers.pop()) {
+            if response.send(containers.pop()).is_err() {
                 error!("receiver dropped");
             }
         }
@@ -180,13 +180,12 @@ async fn handle_get_log_stream(
                         error!("message was not sent: {}", e);
                     }
                 }
-                Ok(_) => {}
                 Err(e) => warn!("failed to receive valid logs: {}", e),
             }
         }
     });
 
-    if let Err(_) = response.send(receiver) {
+    if response.send(receiver).is_err() {
         error!("receiver dropped");
     }
 }
@@ -195,7 +194,7 @@ async fn handle_get_stats_stream(
     client: Docker,
     container_name: String,
     response: oneshot::Sender<mpsc::Receiver<Stats>>,
-) -> () {
+) {
     let (sender, receiver) = mpsc::channel(50);
 
     task::spawn(async move {
@@ -208,13 +207,12 @@ async fn handle_get_stats_stream(
                         error!("failed to send valid stats: {}", e);
                     }
                 }
-                Ok(_) => {}
                 Err(e) => warn!("failed to receive valid stats: {}", e),
             }
         }
     });
 
-    if let Err(_) = response.send(receiver) {
+    if response.send(receiver).is_err() {
         error!("receiver dropped");
     }
 }
@@ -243,7 +241,7 @@ impl DockerHandle {
 
         tokio::spawn(actor.run());
 
-        DockerHandle { sender }
+        Self { sender }
     }
 
     pub async fn handle(&self, message: DockerMessage) {

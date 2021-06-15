@@ -26,7 +26,7 @@ impl LoggingActor {
         client: DockerHandle,
         conf: Configuration,
     ) -> Self {
-        LoggingActor {
+        Self {
             receiver,
             sender,
             tasks,
@@ -71,7 +71,7 @@ impl LoggingReactor {
             tokio::spawn(actor.run());
         }
 
-        LoggingReactor {
+        Self {
             receiver: actor_receiver,
         }
     }

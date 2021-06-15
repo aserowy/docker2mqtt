@@ -22,7 +22,7 @@ pub struct Configuration {
 
 impl Configuration {
     #[instrument]
-    pub fn new() -> Configuration {
+    pub fn new() -> Self {
         let content = read_file(
             "/docker2mqtt/config/",
             vec!["configuration.yaml", "configuration.yml"],

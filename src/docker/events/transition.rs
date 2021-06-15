@@ -34,8 +34,8 @@ fn get_image_event(response: &SystemEventsResponse) -> Event {
 fn get_attribute(actor: &Option<SystemEventsResponseActor>, attribute: &str) -> String {
     actor
         .as_ref()
-        .map_or(None, |response| response.attributes.as_ref())
-        .map_or(None, |attributes| attributes.get(attribute))
+        .and_then(|response| response.attributes.as_ref())
+        .and_then(|attributes| attributes.get(attribute))
         .map_or("".to_owned(), |name| name.to_owned())
 }
 

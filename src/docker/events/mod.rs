@@ -18,7 +18,7 @@ struct EventActor {
 
 impl EventActor {
     fn new(sender: mpsc::Sender<Event>, client: DockerHandle) -> Self {
-        EventActor { sender, client }
+        Self { sender, client }
     }
 
     async fn handle(&mut self, response: SystemEventsResponse) {
@@ -59,6 +59,6 @@ impl EventReactor {
 
         tokio::spawn(actor.run());
 
-        EventReactor { receiver }
+        Self { receiver }
     }
 }

@@ -64,7 +64,7 @@ fn add_payload_to_message(
         .map_err(|e| warn!("could not resolve discovery payload: {:?}", e))
         .map_or(None, |payload| {
             message
-                .map_or(None, |msg| Some(msg.topic))
-                .map_or(None, |topic| Some(Message { topic, payload }))
+                .map(|msg| msg.topic)
+                .map(|topic| Message { topic, payload })
         })
 }

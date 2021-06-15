@@ -20,7 +20,7 @@ impl MappingActor {
         sender: mpsc::Sender<Message>,
         conf: Configuration,
     ) -> Self {
-        MappingActor {
+        Self {
             receiver,
             sender,
             conf,
@@ -54,7 +54,7 @@ impl MappingReactor {
 
         tokio::spawn(actor.run());
 
-        MappingReactor {
+        Self {
             receiver: actor_receiver,
         }
     }

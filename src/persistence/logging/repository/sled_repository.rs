@@ -30,7 +30,7 @@ impl LoggingRepository for SledLoggingRepository {
 
     fn get_last_logging_time(&self) -> Option<UnixTimestamp> {
         match self.database.get("last_logging_time") {
-            Ok(val) => val.and_then(|v| read_from_ivec(v)),
+            Ok(val) => val.and_then(read_from_ivec),
             Err(err) => {
                 error!("error receiving entry from repository: {}", err);
                 Option::None

@@ -24,7 +24,7 @@ impl HassioActor {
         sender: mpsc::Sender<Message>,
         conf: Configuration,
     ) -> Self {
-        HassioActor {
+        Self {
             receiver,
             sender,
             conf,
@@ -72,7 +72,7 @@ impl HassioReactor {
 
         tokio::spawn(actor.run());
 
-        HassioReactor {
+        Self {
             receiver: actor_receiver,
         }
     }
