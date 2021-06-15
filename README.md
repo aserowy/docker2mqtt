@@ -1,11 +1,13 @@
 # docker2mqtt
 
+[![dependabot status][dependabot-badge]]
 [![release][release-badge]][github-url]
 [![ci][ci-badge]][ci-url]
 [![license][mit-badge]][mit-url]
 [![pulls][pulls-badge]][docker-url]
 [![size][size-badge]][docker-url]
 
+[dependabot-badge]: https://img.shields.io/badge/dependabot-enabled-025e8c?logo=Dependabot
 [github-url]: https://github.com/aserowy/docker2mqtt
 [release-badge]: https://img.shields.io/github/v/release/aserowy/docker2mqtt?sort=semver
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
