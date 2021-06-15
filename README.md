@@ -1,6 +1,6 @@
 # docker2mqtt
 
-[![dependabot status][dependabot-badge]]
+![dependabot status][dependabot-badge]
 [![release][release-badge]][github-url]
 [![ci][ci-badge]][ci-url]
 [![license][mit-badge]][mit-url]
