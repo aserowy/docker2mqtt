@@ -32,16 +32,11 @@ fn get_image_event(response: &SystemEventsResponse) -> Event {
 }
 
 fn get_attribute(actor: &Option<SystemEventsResponseActor>, attribute: &str) -> String {
-    let mut result = "".to_owned();
-    if let Some(some_actor) = actor {
-        if let Some(attributes) = &some_actor.attributes {
-            if let Some(name) = attributes.get(attribute) {
-                result = name.to_owned()
-            }
-        }
-    }
-
-    result
+    actor
+        .as_ref()
+        .map_or(None, |response| response.attributes.as_ref())
+        .map_or(None, |attributes| attributes.get(attribute))
+        .map_or("".to_owned(), |name| name.to_owned())
 }
 
 fn get_container_event(action: &Option<String>) -> ContainerEvent {
@@ -118,10 +113,7 @@ mod must {
         for (response, result_count) in responses {
             assert_eq!(
                 result_count,
-                super::to_events(response)
-                    .unwrap()
-                    .iter()
-                    .count()
+                super::to_events(response).unwrap().iter().count()
             );
         }
     }

@@ -1,11 +1,14 @@
 pub mod no_persistence_repository;
 pub mod sled_repository;
 
-use tracing::debug;
+use self::{
+    no_persistence_repository::NoPersistenceLoggingRepository,
+    sled_repository::SledLoggingRepository,
+};
 use super::UnixTimestamp;
-use self::{no_persistence_repository::NoPersistenceLoggingRepository, sled_repository::SledLoggingRepository};
 use crate::configuration::Configuration;
 use crate::persistence::DATA_DIRECTORY;
+use tracing::debug;
 
 pub trait LoggingRepository: Send {
     fn set_last_logging_time(&mut self, time: UnixTimestamp);

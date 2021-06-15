@@ -11,9 +11,11 @@ pub mod logging;
 const DATA_DIRECTORY: &str = "/docker2mqtt/data";
 
 pub async fn init_task(init_sender: oneshot::Sender<Vec<String>>, handle: DockerDbHandle) {
-    handle.handle(GetAllDockerContainers {
-        respond_to: init_sender,
-    }).await
+    handle
+        .handle(GetAllDockerContainers {
+            respond_to: init_sender,
+        })
+        .await
 }
 
 pub async fn state_task(mut receiver: mpsc::Receiver<Event>, handle: DockerDbHandle) {

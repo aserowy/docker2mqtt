@@ -1,11 +1,9 @@
 mod repository;
 
-use tokio::{
-    sync::{mpsc, oneshot}
-};
-use tracing::error;
-use crate::configuration::Configuration;
 use self::repository::DockerRepository;
+use crate::configuration::Configuration;
+use tokio::sync::{mpsc, oneshot};
+use tracing::error;
 
 pub enum DockerDbMessage {
     GetAllDockerContainers {

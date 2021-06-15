@@ -6,17 +6,14 @@ use crate::{
     mqtt::Message,
 };
 
-pub fn for_create_event(event: &Event, conf: &Configuration) -> Vec<Message> {
-    let mut result = vec![];
-    for sensor in get_sensors().into_iter() {
-        if let Some(message) = get_messages_with_topic(event, &sensor, conf) {
-            if let Some(with_payload) = add_payload_to_message(message, event, &sensor, conf) {
-                result.push(with_payload);
-            }
-        }
-    }
+use super::content;
 
-    result
+pub fn for_create_event(event: &Event, conf: &Configuration) -> Vec<Message> {
+    get_sensors()
+        .into_iter()
+        .map(|sensor| (get_messages_with_topic(event, &sensor, conf), sensor))
+        .flat_map(|(message, sensor)| add_payload_to_message(message, event, &sensor, conf))
+        .collect()
 }
 
 pub fn for_destroy_event(event: &Event, conf: &Configuration) -> Vec<Message> {
@@ -44,22 +41,18 @@ fn get_messages_with_topic(
     let container_name = &event.container_name;
     let event_name = &sensor.to_string();
 
-    let topic = match super::content::topic(container_name, event_name, conf) {
-        Ok(topic) => topic,
-        Err(e) => {
-            warn!("could not resolve discovery topic: {:?}", e);
-            return None;
-        }
-    };
-
-    Some(Message {
-        topic,
-        payload: String::new(),
-    })
+    content::topic(container_name, event_name, conf)
+        .map_err(|e| warn!("could not resolve discovery topic: {:?}", e))
+        .map_or(None, |topic| {
+            Some(Message {
+                topic,
+                payload: String::new(),
+            })
+        })
 }
 
 fn add_payload_to_message(
-    message: Message,
+    message: Option<Message>,
     event: &Event,
     sensor: &EventType,
     conf: &Configuration,
@@ -67,16 +60,11 @@ fn add_payload_to_message(
     let container_name = &event.container_name;
     let event_name = &sensor.to_string();
 
-    let payload = match super::content::payload(container_name, event_name, conf) {
-        Ok(payload) => payload,
-        Err(e) => {
-            warn!("could not resolve discovery payload: {:?}", e);
-            return None;
-        }
-    };
-
-    Some(Message {
-        topic: message.topic,
-        payload,
-    })
+    content::payload(container_name, event_name, conf)
+        .map_err(|e| warn!("could not resolve discovery payload: {:?}", e))
+        .map_or(None, |payload| {
+            message
+                .map_or(None, |msg| Some(msg.topic))
+                .map_or(None, |topic| Some(Message { topic, payload }))
+        })
 }

@@ -2,7 +2,11 @@ use lazy_static::lazy_static;
 use regex::Regex;
 use tracing::warn;
 
-use crate::{configuration::Configuration, docker::{client::DockerHandle, container}, events::Event};
+use crate::{
+    configuration::Configuration,
+    docker::{client::DockerHandle, container},
+    events::Event,
+};
 
 pub async fn target(event: &Event, client: &DockerHandle, conf: &Configuration) -> bool {
     let container;

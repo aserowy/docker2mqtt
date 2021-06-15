@@ -1,7 +1,7 @@
 use tokio::sync::{mpsc, oneshot};
 
-use crate::configuration::Configuration;
 use self::repository::LoggingRepository;
+use crate::configuration::Configuration;
 use tracing::error;
 
 mod repository;
@@ -13,16 +13,16 @@ pub struct UnixTimestamp {
 
 pub enum LoggingDbMessage {
     GetLastLoggingTime {
-        respond_to: oneshot::Sender<Option<UnixTimestamp>>
+        respond_to: oneshot::Sender<Option<UnixTimestamp>>,
     },
     SetLastLoggingTime {
-        time: UnixTimestamp
-    }
+        time: UnixTimestamp,
+    },
 }
 
 #[derive(Clone)]
 pub struct LoggingDbHandle {
-    sender: mpsc::Sender<LoggingDbMessage>
+    sender: mpsc::Sender<LoggingDbMessage>,
 }
 
 impl LoggingDbHandle {
@@ -44,14 +44,14 @@ impl LoggingDbHandle {
 
 struct LoggingDbActor {
     repository: Box<dyn LoggingRepository>,
-    receiver: mpsc::Receiver<LoggingDbMessage>
+    receiver: mpsc::Receiver<LoggingDbMessage>,
 }
 
 impl LoggingDbActor {
     fn new(conf: &Configuration, receiver: mpsc::Receiver<LoggingDbMessage>) -> Self {
         Self {
             repository: repository::new(conf),
-            receiver
+            receiver,
         }
     }
 
@@ -68,7 +68,9 @@ impl LoggingDbActor {
                     error!("Error sending docker container list: {:?}", err)
                 }
             }
-            LoggingDbMessage::SetLastLoggingTime { time } => self.repository.set_last_logging_time(time)
+            LoggingDbMessage::SetLastLoggingTime { time } => {
+                self.repository.set_last_logging_time(time)
+            }
         }
     }
 }

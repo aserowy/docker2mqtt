@@ -1,6 +1,13 @@
 use tokio::sync::{mpsc, oneshot};
 
-use crate::{configuration::Configuration, docker::{client::DockerHandle, initial::InitReactor, logs::LoggingReactor, stats::StatsReactor}, events::Event, reaktor::{multiplier::Multiplier, reducer::Reducer, relay::Relay}};
+use crate::{
+    configuration::Configuration,
+    docker::{
+        client::DockerHandle, initial::InitReactor, logs::LoggingReactor, stats::StatsReactor,
+    },
+    events::Event,
+    reaktor::{multiplier::Multiplier, reducer::Reducer, relay::Relay},
+};
 
 use self::events::EventReactor;
 

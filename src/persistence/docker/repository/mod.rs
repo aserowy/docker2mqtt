@@ -1,10 +1,12 @@
 mod no_persistence_repository;
 mod sled_repository;
 
+use self::{
+    no_persistence_repository::NoPersistenceDockerRepository, sled_repository::SledDockerRepository,
+};
 use crate::configuration::Configuration;
-use tracing::debug;
-use self::{no_persistence_repository::NoPersistenceDockerRepository, sled_repository::SledDockerRepository};
 use crate::persistence::DATA_DIRECTORY;
+use tracing::debug;
 
 pub trait DockerRepository: Send {
     fn list(&self) -> Vec<String>;
