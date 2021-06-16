@@ -5,6 +5,7 @@ updates:
     schedule:
       interval: "daily"
     labels:
+      - "chore"
       - "dependabot"
 
   - package-ecosystem: "docker"
@@ -12,6 +13,7 @@ updates:
     schedule:
       interval: "daily"
     labels:
+      - "chore"
       - "dependabot"
 
   - package-ecosystem: "cargo"
@@ -19,4 +21,5 @@ updates:
     schedule:
       interval: "daily"
     labels:
+      - "chore"
       - "dependabot"
