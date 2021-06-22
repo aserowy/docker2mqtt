@@ -1,5 +1,4 @@
-ARG BASE_IMAGE
-FROM $BASE_IMAGE
+FROM debian:buster-slim
 
 ARG SUB_DIR
 
