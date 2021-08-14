@@ -68,7 +68,13 @@ async fn start_stats_stream(
     sender: broadcast::Sender<Event>,
 ) -> JoinHandle<()> {
     task::spawn(async move {
-        let mut stream = client.stats(&event.container_name, Some(StatsOptions { stream: true }));
+        let mut stream = client.stats(
+            &event.container_name,
+            Some(StatsOptions {
+                stream: true,
+                ..Default::default()
+            }),
+        );
         while let Some(result) = stream.next().await {
             match result {
                 Ok(stats) => send_stat_events(&event, &stats, &sender),
