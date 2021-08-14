@@ -126,6 +126,7 @@ Cargo.lock
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,visualstudiocode,jetbrains
 
+.direnv
 d2m.*
 /.devcontainer/docker2mqtt/data/*.db/
 /.devcontainer/home-assistant/
