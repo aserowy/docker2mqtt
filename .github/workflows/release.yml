@@ -14,7 +14,7 @@ jobs:
 
       - name: build_changelog
         id: changelog
-        uses: mikepenz/release-changelog-builder-action@v2
+        uses: mikepenz/release-changelog-builder-action@v3
         with:
           configuration: ".github/release_notes_configuration.json"
         env:
