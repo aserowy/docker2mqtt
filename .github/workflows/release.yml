@@ -87,7 +87,7 @@ jobs:
           platforms: all
 
       - name: docker_setup_buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
         with:
           version: latest
 
