@@ -82,7 +82,7 @@ jobs:
         run: echo ${{ secrets.DOCKER_ATOKEN }} | docker login -u serowy --password-stdin
 
       - name: docker_setup_qemu
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
         with:
           platforms: all
 
